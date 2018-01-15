@@ -37,6 +37,7 @@ import me.lty.ssltest.mitm.MITMProxyServer;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
 import me.lty.ssltest.mitm.ProxyDataFilter;
 
+import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
 import java.io.BufferedInputStream;
@@ -313,7 +314,7 @@ public class HTTPSProxyEngine extends ProxyEngine {
             this.remoteSocket = s;
         }
 
-        public final ServerSocket createServerSocket(String remoteServerCN) throws Exception {
+        public final SSLServerSocket createServerSocket(String remoteServerCN) throws Exception {
             assert remoteServerCN != null;
 
             MITMSSLSocketFactory ssf = null;
@@ -331,11 +332,11 @@ public class HTTPSProxyEngine extends ProxyEngine {
                                                remoteServerCN);
                 ssf = cnMap.get(remoteServerCN);
             }
-            m_serverSocket = ssf.createServerSocket(
+            m_sslServerSocket = (SSLServerSocket) ssf.createServerSocket(
                     getConnectionDetails().getLocalHost(),
                     0
             );
-            return m_serverSocket;
+            return m_sslServerSocket;
         }
 
         public final ServerSocket createServerSocket(String remoteServerCN, iaik
@@ -357,13 +358,13 @@ public class HTTPSProxyEngine extends ProxyEngine {
                 if (MITMProxyServer.debugFlag)
                     System.out.println("[HTTPSProxyEngine] Found cached certificate for " +
                                                remoteServerCN);
-                ssf = (MITMSSLSocketFactory) cnMap.get(remoteServerCN);
+                ssf = cnMap.get(remoteServerCN);
             }
-            m_serverSocket = ssf.createServerSocket(
+            m_sslServerSocket = (SSLServerSocket) ssf.createServerSocket(
                     getConnectionDetails().getLocalHost(),
                     0
             );
-            return m_serverSocket;
+            return m_sslServerSocket;
         }
 
         /*

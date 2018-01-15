@@ -20,7 +20,13 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import javax.net.ssl.SSLServerSocket;
+
+import me.lty.ssltest.mitm.ClientB2ServerA;
 import me.lty.ssltest.mitm.ConnectionDetails;
+import me.lty.ssltest.mitm.ServerA2ClientB;
+import me.lty.ssltest.mitm.factory.MITMPlainSocketFactory;
+import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSocketFactory;
 import me.lty.ssltest.mitm.ProxyDataFilter;
 import me.lty.ssltest.mitm.StreamThread;
@@ -36,7 +42,8 @@ public abstract class ProxyEngine implements Runnable {
     private final PrintWriter m_outputWriter;
 
     public final MITMSocketFactory m_socketFactory;
-    protected ServerSocket m_serverSocket;
+    protected SSLServerSocket m_sslServerSocket;
+    protected ServerSocket m_ServerSocket;
 
     public ProxyEngine(MITMSocketFactory socketFactory,
                        ProxyDataFilter requestFilter,
@@ -50,17 +57,31 @@ public abstract class ProxyEngine implements Runnable {
 
         m_outputWriter = requestFilter.getOutputPrintWriter();
 
-        m_serverSocket =
-                m_socketFactory.createServerSocket(
-                        connectionDetails.getLocalHost(),
-                        connectionDetails.getLocalPort()
-                );
+        if (socketFactory instanceof MITMPlainSocketFactory){
+            m_ServerSocket =
+                    m_socketFactory.createServerSocket(
+                            connectionDetails.getLocalHost(),
+                            connectionDetails.getLocalPort()
+                    );
+        }else if (socketFactory instanceof MITMSSLSocketFactory){
+            m_sslServerSocket =
+                    (SSLServerSocket) m_socketFactory.createServerSocket(
+                            connectionDetails.getLocalHost(),
+                            connectionDetails.getLocalPort()
+                    );
+        }
     }
 
     //run() method from Runnable is implemented in subclasses
 
     public final ServerSocket getServerSocket() {
-        return m_serverSocket;
+        if (m_socketFactory instanceof MITMPlainSocketFactory){
+            return m_ServerSocket;
+        }else if (m_socketFactory instanceof MITMSSLSocketFactory){
+            return m_sslServerSocket;
+        }else {
+            return null;
+        }
     }
 
     protected final MITMSocketFactory getSocketFactory() {
@@ -83,7 +104,7 @@ public abstract class ProxyEngine implements Runnable {
                                           OutputStream localOutputStream,
                                           String remoteHost,
                                           int remotePort) throws IOException {
-        new StreamThread(
+        new ServerA2ClientB(
                 new ConnectionDetails(
                         m_connectionDetails.getLocalHost(),
                         localSocket.getPort(),
@@ -97,7 +118,7 @@ public abstract class ProxyEngine implements Runnable {
                 m_outputWriter
         );
 
-        new StreamThread(
+        new ClientB2ServerA(
                 new ConnectionDetails(
                         remoteHost,
                         remoteSocket.getPort(),

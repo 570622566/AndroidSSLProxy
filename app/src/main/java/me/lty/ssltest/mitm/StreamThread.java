@@ -3,6 +3,8 @@ package me.lty.ssltest.mitm;// This file is part of The Grinder software distrib
 // licensing details. The Grinder distribution is available on the
 // Internet at http://grinder.sourceforge.net/
 
+import android.util.Log;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -13,6 +15,9 @@ import java.net.SocketException;
  * ProxyDataFilter to log the contents appropriately.
  */
 public class StreamThread implements Runnable {
+
+    private static final String TAG = StreamThread.class.getSimpleName();
+
     // For simplicity, the filters take a buffer oriented approach.
     // This means that they all break at buffer boundaries. Our buffer
     // is huge, so we shouldn't practically cause a problem, but the
@@ -63,9 +68,15 @@ public class StreamThread implements Runnable {
                     break;
                 }
 
+                //final byte[] newBytes =
+                //        m_filter.handle(m_connectionDetails, buffer, bytesRead);
+
+                final String line = new String(buffer, 0, bytesRead, "US-ASCII");
+
+                Log.wtf(getTag(),line);
 
                 final byte[] newBytes =
-                        m_filter.handle(m_connectionDetails, buffer, bytesRead);
+                        m_filter.handle(getTag(), m_connectionDetails, buffer, bytesRead);
 
                 m_outputWriter.flush();
 
@@ -101,5 +112,9 @@ public class StreamThread implements Runnable {
             m_in.close();
         } catch (Exception e) {
         }
+    }
+
+    public String getTag() {
+        return TAG;
     }
 }

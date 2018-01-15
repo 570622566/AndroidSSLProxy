@@ -60,8 +60,8 @@ import me.lty.ssltest.mitm.tool.SignCert;
  * allow creation of factories with custom parameters.
  */
 public final class MITMSSLSocketFactory implements MITMSocketFactory {
-    private ServerSocketFactory m_serverSocketFactory;
-    private SocketFactory m_clientSocketFactory;
+    private SSLServerSocketFactory m_serverSocketFactory;
+    private SSLSocketFactory m_clientSocketFactory;
     private SSLContext m_sslContext;
 
     public KeyStore ks = null;
