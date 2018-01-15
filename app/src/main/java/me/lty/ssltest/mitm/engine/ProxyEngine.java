@@ -47,7 +47,6 @@ public abstract class ProxyEngine implements Runnable {
 
     private static final String TAG = ProxyEngine.class.getSimpleName();
 
-    public static final String ACCEPT_TIMEOUT_MESSAGE = "Listen time out";
     private final ProxyDataFilter m_requestFilter;
     private final ProxyDataFilter m_responseFilter;
     private final ConnectionDetails m_connectionDetails;

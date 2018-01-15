@@ -38,14 +38,15 @@ public class ConnectionHandler implements Runnable {
     private Socket mAcceptSocket;
     private ProxySSLEngine m_proxySSLEngine;
 
-    public ConnectionHandler(AsyncRunner asyncRunner,Socket connection, ProxySSLEngine proxySSLEngine) {
-        this.mAsyncRunner =asyncRunner;
+    public ConnectionHandler(AsyncRunner asyncRunner, Socket connection, ProxySSLEngine
+            proxySSLEngine) {
+        this.mAsyncRunner = asyncRunner;
         this.mAcceptSocket = connection;
         this.m_proxySSLEngine = proxySSLEngine;
     }
 
     @Override
-    public void run(){
+    public void run() {
         try {
             InputStream inputStream = mAcceptSocket.getInputStream();
             HttpRequest httpRequest = new HttpRequest(inputStream);
@@ -132,21 +133,32 @@ public class ConnectionHandler implements Runnable {
                 // everything we receive over localSocket to
                 // sslProxySocket, and vice versa.
                 new Thread(
-                        new CopyStreamRunnable(inputStream, sslProxySocket.getOutputStream()),
-                        "Copy to proxy engine for " + target
+                        new CopyStreamRunnable(
+                                inputStream,
+                                sslProxySocket.getOutputStream(),
+                                "Copy to proxy engine for " + target
+                        ), "Copy to proxy engine for " + target
                 ).start();
 
                 final OutputStream out = mAcceptSocket.getOutputStream();
 
                 new Thread(
                         new CopyStreamRunnable(
-                                sslProxySocket.getInputStream(), out),
+                                sslProxySocket.getInputStream(),
+                                out,
+                                "Copy to proxy engine for " + target
+                        ),
                         "Copy from proxy engine for " + target
                 ).start();
 
                 // Send a 200 response to send to client. Client
                 // will now start sending SSL data to localSocket.
-                HTTPSProxyEngine.sendClientResponse(out, "200 Connection established", remoteHost, remotePort);
+                HTTPSProxyEngine.sendClientResponse(
+                        out,
+                        "200 Connection established",
+                        remoteHost,
+                        remotePort
+                );
             } else {
                 //Not a CONNECT request
 

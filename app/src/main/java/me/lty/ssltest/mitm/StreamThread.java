@@ -20,6 +20,8 @@ public class StreamThread implements Runnable {
     // We really ought to take a stream oriented approach.
     private final static int BUFFER_SIZE = 65536;
 
+    private static final String TAG = StreamThread.class.getSimpleName();
+
     private final ConnectionDetails m_connectionDetails;
     private final InputStream m_in;
     private final OutputStream m_out;
@@ -86,13 +88,9 @@ public class StreamThread implements Runnable {
         // We're exiting, usually because the in stream has been
         // closed. Whatever, close our streams. This will cause the
         // paired thread to exit to.
-        try {
-            m_out.close();
-        } catch (Exception e) {
-            e.printStackTrace(System.err);
-        }
 
         try {
+            m_out.close();
             m_in.close();
         } catch (Exception e) {
             e.printStackTrace(System.err);

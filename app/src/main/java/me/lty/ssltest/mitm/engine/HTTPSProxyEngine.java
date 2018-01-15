@@ -99,8 +99,7 @@ public class HTTPSProxyEngine extends ProxyEngine {
 
         assert sslSocketFactory != null;
 
-        ConnectionDetails connectionDetails = new ConnectionDetails(getConnectionDetails()
-                                                                            .getLocalHost(),
+        ConnectionDetails connectionDetails = new ConnectionDetails(getConnectionDetails().getLocalHost(),
                                                                     0, "", -1, true
         );
 

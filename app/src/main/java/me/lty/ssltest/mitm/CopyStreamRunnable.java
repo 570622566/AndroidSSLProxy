@@ -3,6 +3,8 @@ package me.lty.ssltest.mitm;// This file is part of The Grinder software distrib
 // licensing details. The Grinder distribution is available on the
 // Internet at http://grinder.sourceforge.net/
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,12 +14,16 @@ import java.io.OutputStream;
  * an OutputStream.
  */
 public class CopyStreamRunnable implements Runnable {
+
+    private final String TAG;
+
     private final InputStream m_in;
     private final OutputStream m_out;
 
-    public CopyStreamRunnable(InputStream in, OutputStream out) {
+    public CopyStreamRunnable(InputStream in, OutputStream out,String tag) {
         m_in = in;
         m_out = out;
+        TAG = tag;
     }
 
     public void run() {
@@ -46,21 +52,24 @@ public class CopyStreamRunnable implements Runnable {
             }
         } catch (IOException e) {
             // Be silent about IOExceptions ...
+            Log.d(TAG,"Got catch");
+            e.printStackTrace();
         } catch (InterruptedException e) {
             // ... and InterruptedExceptions.
+            Log.d(TAG,"Got catch");
+            e.printStackTrace();
         }
 
         // We're exiting, usually because the in stream has been
         // closed. Whatever, close our streams. This will cause the
         // paired thread to exit too.
         try {
+            Log.d(TAG,"close our stream");
             m_out.close();
-        } catch (IOException e) {
-        }
-
-        try {
             m_in.close();
         } catch (IOException e) {
+            Log.d(TAG,"Got catch");
+            e.printStackTrace();
         }
     }
 }
