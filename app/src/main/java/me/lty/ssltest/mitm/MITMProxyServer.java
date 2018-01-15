@@ -49,8 +49,6 @@ public class MITMProxyServer {
 
     private static final String TAG = MITMProxyServer.class.getSimpleName();
 
-    public static boolean debugFlag = false;
-
     private ProxyEngine m_engine = null;
 
     public MITMProxyServer() {
@@ -67,7 +65,6 @@ public class MITMProxyServer {
         String filename = App.context().getFilesDir() + "/out.txt";
 
         try {
-            debugFlag = true;
             PrintWriter pw = new PrintWriter(new FileWriter(filename), true);
             requestFilter.setOutputPrintWriter(pw);
             responseFilter.setOutputPrintWriter(pw);

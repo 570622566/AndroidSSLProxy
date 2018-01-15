@@ -65,14 +65,12 @@ public class ProxySSLEngine extends ProxyEngine {
         if (cnMap.get(remoteServerCN) == null) {
             //Instantiate a NEW SSLSocketFactory with a cert that's based on the remote
             // server's Common Name
-            System.out.println("[HTTPSProxyEngine] Creating a new certificate for " +
-                                       remoteServerCN);
+            Log.d(TAG, "[HTTPSProxyEngine] Creating a new certificate for " +
+                    remoteServerCN);
             ssf = new MITMSSLSocketFactory(remoteServerCN);
             cnMap.put(remoteServerCN, ssf);
         } else {
-            if (MITMProxyServer.debugFlag)
-                System.out.println("Found cached certificate for " +
-                                           remoteServerCN);
+            Log.d(TAG, "Found cached certificate for " + remoteServerCN);
             ssf = cnMap.get(remoteServerCN);
         }
         m_serverSocket = ssf.createServerSocket(
@@ -93,14 +91,12 @@ public class ProxySSLEngine extends ProxyEngine {
         if (cnMap.get(remoteServerCN) == null) {
             //Instantiate a NEW SSLSocketFactory with a cert that's based on the remote
             // server's Common Name
-            System.out.println("Creating a new certificate for " +
-                                       remoteServerCN);
+            Log.d(TAG, "Creating a new certificate for " +
+                    remoteServerCN);
             ssf = new MITMSSLSocketFactory(remoteServerCN, remoteServerCert);
             cnMap.put(remoteServerCN, ssf);
         } else {
-            if (MITMProxyServer.debugFlag)
-                System.out.println("Found cached certificate for " +
-                                           remoteServerCN);
+            Log.d(TAG, "Found cached certificate for " + remoteServerCN);
             ssf = cnMap.get(remoteServerCN);
         }
         m_serverSocket = ssf.createServerSocket(
@@ -120,9 +116,7 @@ public class ProxySSLEngine extends ProxyEngine {
         try {
             final Socket localSocket = this.getServerSocket().accept();
 
-            if (MITMProxyServer.debugFlag)
-                Log.e(TAG, "New proxy proxy connection to " +
-                        m_tempRemoteHost + ":" + m_tempRemotePort);
+            Log.e(TAG, "New proxy proxy connection to " + m_tempRemoteHost + ":" + m_tempRemotePort);
 
             this.launchThreadPair(localSocket, remoteSocket,
                                   localSocket.getInputStream(),

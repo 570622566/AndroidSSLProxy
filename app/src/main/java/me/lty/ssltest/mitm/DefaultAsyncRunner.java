@@ -47,7 +47,7 @@ public class DefaultAsyncRunner implements AsyncRunner {
         ++this.requestCount;
         Thread t = new Thread(clientHandler);
         t.setDaemon(true);
-        t.setName("NanoHttpd Request Processor (#" + this.requestCount + ")");
+        t.setName("Request Processor (#" + this.requestCount + ")");
         this.running.add(clientHandler);
         t.start();
     }

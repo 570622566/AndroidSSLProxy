@@ -53,8 +53,9 @@ public class ConnectionHandler implements Runnable {
             Log.e(TAG, httpRequest.toString());
 
             // 'grep' for CONNECT message and extract the remote server/port
-
             if ("CONNECT".equals(httpRequest.getMethod().name())) {
+                while (inputStream.read(new byte[10240], 0, inputStream.available()) > 0) {
+                }
                 //then we have a proxy CONNECT message!
                 final String remoteHost = httpRequest.getRemoteHost();
 
@@ -63,8 +64,7 @@ public class ConnectionHandler implements Runnable {
 
                 final String target = remoteHost + ":" + remotePort;
 
-                if (MITMProxyServer.debugFlag)
-                    Log.d(TAG, "Establishing a new HTTPS proxy connection to " + target);
+                Log.d(TAG, "Establishing a new HTTPS proxy connection to " + target);
 
                 //m_tempRemoteHost = remoteHost;
                 //m_tempRemotePort = remotePort;
@@ -100,8 +100,7 @@ public class ConnectionHandler implements Runnable {
                 Name n = (Name) cert.getSubjectDN();
                 String serverCN = n.getRDN(ObjectID.commonName);
 
-                if (MITMProxyServer.debugFlag)
-                    Log.d(TAG, "Remote Server Cert CN= " + serverCN);
+                Log.d(TAG, "Remote Server Cert CN= " + serverCN);
 
                 //We've already opened the socket, so might as well keep using it:
                 m_proxySSLEngine.setRemoteSocket(remoteSocket);

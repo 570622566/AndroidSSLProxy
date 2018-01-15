@@ -122,9 +122,6 @@ public class HTTPSProxyEngine extends ProxyEngine {
             try {
                 //Plaintext Socket with client (i.e. browser)
                 final Socket acceptSocket = getServerSocket().accept();
-                if (this.timeout > 0) {
-                    acceptSocket.setSoTimeout(this.timeout);
-                }
                 asyncRunner.exec(createConnHandler(acceptSocket));
             } catch (InterruptedIOException e) {
                 e.printStackTrace();

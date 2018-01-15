@@ -413,96 +413,72 @@ public class HttpRequest {
     }
 
     public void execute() throws Exception {
+
+        // Read the first 8192 bytes.
+        // The full header should fit in here.
+        // Apache's default header limit is 8KB.
+        // Do NOT assume that a single read will get the entire header
+        // at once!
+        byte[] buf = new byte[BUFFER_SIZE];
+        this.splitbyte = 0;
+
+        this.inputStream.mark(BUFFER_SIZE);
+
+        int read = -1;
         try {
-            // Read the first 8192 bytes.
-            // The full header should fit in here.
-            // Apache's default header limit is 8KB.
-            // Do NOT assume that a single read will get the entire header
-            // at once!
-            byte[] buf = new byte[BUFFER_SIZE];
-            this.splitbyte = 0;
-
-            int read = -1;
-            try {
-                read = this.inputStream.read(buf);
-            } catch (SSLException e) {
-                throw e;
-            } catch (IOException e) {
-                safeClose(this.inputStream);
-                throw new SocketException("NanoHttpd Shutdown");
-            }
-            if (read == -1) {
-                // socket was been closed
-                safeClose(this.inputStream);
-                throw new SocketException("NanoHttpd Shutdown");
-            }
-            this.rlen = read;
-            this.splitbyte = findHeaderEnd(buf, read);
-
-            this.parms = new HashMap<>();
-            if (null == this.headers) {
-                this.headers = new HashMap<>();
-            } else {
-                this.headers.clear();
-            }
-
-            // Create a BufferedReader for parsing the header.
-            BufferedReader hin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(
-                    buf,
-                    0,
-                    this.splitbyte
-            )));
-
-            // Decode the header into parms and header java properties
-            Map<String, String> pre = new HashMap<>();
-            decodeHeader(hin, pre, this.parms, this.headers);
-
-            if (null != this.remoteIp) {
-                this.headers.put("remote-addr", this.remoteIp);
-                this.headers.put("http-client-ip", this.remoteIp);
-            }
-
-            this.method = Method.lookup(pre.get("method"));
-            if (this.method == null) {
-                throw new ResponseException(
-                        Response.Status.BAD_REQUEST,
-                        "BAD REQUEST: Syntax error. HTTP verb " + pre.get("method") + " unhandled."
-                );
-            }
-
-            this.uri = pre.get("uri");
-
-            this.cookies = new CookieHandler(this.headers);
-
-            String connection = this.headers.get("connection");
-            boolean keepAlive = "HTTP/1.1".equals(protocolVersion) && (connection == null ||
-                    !connection.matches("(?i).*close.*"));
-
-        } catch (SocketException e) {
-            // throw it out to close socket object (finalAccept)
+            read = this.inputStream.read(buf);
+        } catch (SSLException e) {
             throw e;
-        } catch (SocketTimeoutException ste) {
-            // treat socket timeouts the same way we treat socket exceptions
-            // i.e. close the stream & finalAccept object by throwing the
-            // exception up the call stack.
-            throw ste;
-        } catch (SSLException ssle) {
-            //Response resp = newFixedLengthResponse(
-            //        Response.Status.INTERNAL_ERROR,
-            //        NanoHTTPD.MIME_PLAINTEXT,
-            //        "SSL PROTOCOL FAILURE: " + ssle.getMessage()
-            //);
-            //resp.send(this.outputStream);
-            //safeClose(this.outputStream);
-        } catch (ResponseException re) {
-            //Response resp = newFixedLengthResponse(
-            //        re.getStatus(),
-            //        NanoHTTPD.MIME_PLAINTEXT,
-            //        re.getMessage()
-            //);     e'f
-            //resp.send(this.outputStream);
-            //safeClose(this.outputStream);
+        } catch (IOException e) {
+            safeClose(this.inputStream);
+            throw new SocketException("NanoHttpd Shutdown");
         }
+        if (read == -1) {
+            // socket was been closed
+            safeClose(this.inputStream);
+            throw new SocketException("NanoHttpd Shutdown");
+        }
+        this.rlen = read;
+        this.splitbyte = findHeaderEnd(buf, read);
+
+        this.parms = new HashMap<>();
+        if (null == this.headers) {
+            this.headers = new HashMap<>();
+        } else {
+            this.headers.clear();
+        }
+
+        // Create a BufferedReader for parsing the header.
+        BufferedReader hin = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(
+                buf,
+                0,
+                this.splitbyte
+        )));
+
+        // Decode the header into parms and header java properties
+        Map<String, String> pre = new HashMap<>();
+        decodeHeader(hin, pre, this.parms, this.headers);
+
+        if (null != this.remoteIp) {
+            this.headers.put("remote-addr", this.remoteIp);
+            this.headers.put("http-client-ip", this.remoteIp);
+        }
+
+        this.method = Method.lookup(pre.get("method"));
+        if (this.method == null) {
+            throw new ResponseException(
+                    Response.Status.BAD_REQUEST,
+                    "BAD REQUEST: Syntax error. HTTP verb " + pre.get("method") + " unhandled."
+            );
+        }
+
+        this.uri = pre.get("uri");
+
+        this.cookies = new CookieHandler(this.headers);
+
+        String connection = this.headers.get("connection");
+        boolean keepAlive = "HTTP/1.1".equals(protocolVersion) && (connection == null ||
+                !connection.matches("(?i).*close.*"));
     }
 
     /**
