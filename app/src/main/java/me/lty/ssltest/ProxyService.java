@@ -19,7 +19,7 @@ import me.lty.ssltest.mitm.MITMProxyServer;
  * @author lty
  * @version v1.0
  */
-public class ProxyService extends Service{
+public class ProxyService extends Service {
 
     private ServerThread thread;
 
@@ -47,7 +47,7 @@ public class ProxyService extends Service{
         thread.interrupt();
     }
 
-    class ServerThread extends Thread{
+    class ServerThread extends Thread {
         @Override
         public void run() {
             MITMProxyServer mitmProxyServer = new MITMProxyServer();

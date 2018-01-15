@@ -9,7 +9,6 @@ import android.util.Log;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -299,9 +298,7 @@ public class WifiProxyUtil {
     /**
      * 取消代理设置
      */
-    public void unSetHttpProxy() throws ClassNotFoundException, InvocationTargetException,
-            IllegalAccessException,
-            NoSuchFieldException, NoSuchMethodException {
+    public void unSetHttpProxy() throws Exception {
         WifiConfiguration configuration = getCurrentWifiConfiguration();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             mInfo = ProxyInfo.buildDirectProxy(null, 0);

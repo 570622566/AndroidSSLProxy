@@ -36,13 +36,7 @@ public class StreamThread implements Runnable {
         m_filter = filter;
         m_outputWriter = outputWriter;
 
-        final Thread t =
-                new Thread(
-                        this,
-                        "Filter thread for " +
-                                m_connectionDetails.getDescription()
-                );
-
+        final Thread t = new Thread(this, "Filter thread for " + m_connectionDetails.getDescription());
         try {
             m_filter.connectionOpened(m_connectionDetails);
         } catch (Exception e) {
@@ -63,7 +57,6 @@ public class StreamThread implements Runnable {
                     break;
                 }
 
-
                 final byte[] newBytes =
                         m_filter.handle(m_connectionDetails, buffer, bytesRead);
 
@@ -76,6 +69,7 @@ public class StreamThread implements Runnable {
                 }
             }
         } catch (SocketException e) {
+            e.printStackTrace(System.err);
             // Be silent about SocketExceptions.
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -95,11 +89,13 @@ public class StreamThread implements Runnable {
         try {
             m_out.close();
         } catch (Exception e) {
+            e.printStackTrace(System.err);
         }
 
         try {
             m_in.close();
         } catch (Exception e) {
+            e.printStackTrace(System.err);
         }
     }
 }

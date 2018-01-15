@@ -57,7 +57,7 @@ public class MITMProxyServer {
         init();
     }
 
-    private void init(){
+    private void init() {
         // Default values.
         ProxyDataFilter requestFilter = new ProxyDataFilter();
         ProxyDataFilter responseFilter = new ProxyDataFilter();

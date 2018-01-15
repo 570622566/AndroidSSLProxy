@@ -1,4 +1,5 @@
-package me.lty.ssltest.mitm.factory;//Based on SnifferSSLSocketFactory.java from The Grinder distribution.
+package me.lty.ssltest.mitm.factory;//Based on SnifferSSLSocketFactory.java from The Grinder
+// distribution.
 // The Grinder distribution is available at http://grinder.sourceforge.net/
 /*
 Copyright 2007 Srinivas Inguva
@@ -27,17 +28,19 @@ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
 */
 
 import android.content.res.AssetManager;
+import android.util.Log;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import javax.net.ServerSocketFactory;
-import javax.net.SocketFactory;
-import javax.net.ssl.*;
-
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
+import java.net.URLConnection;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -45,6 +48,15 @@ import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+
+import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import me.lty.ssltest.App;
 import me.lty.ssltest.mitm.CAConfig;
@@ -87,7 +99,7 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
      * that is initialized with a fixed CA certificate
      */
     public MITMSSLSocketFactory() throws Exception {
-        init(null,null);
+        init(null, null);
     }
 
     /**
@@ -140,12 +152,22 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
                 PrivateKey privateKey = CertUtil.loadPriKey(assets.open(("ca_private.der")));
                 iaik.x509.X509Certificate cert = CertUtil.loadCert1(assets.open("ca.crt"));
                 char[] password = new char[0];
-                iaik.x509.X509Certificate newCert = SignCert.forgeCert(privateKey, cert, remoteCN, remoteServerCert);
+                iaik.x509.X509Certificate newCert = SignCert.forgeCert(
+                        privateKey,
+                        cert,
+                        remoteCN,
+                        remoteServerCert
+                );
                 KeyStore newKS = KeyStore.getInstance(KeyStore.getDefaultType());
                 newKS.load(null, null);
-                newKS.setKeyEntry(DEFAULT_ALIAS, privateKey, new char[0], new Certificate[]{newCert});
+                newKS.setKeyEntry(
+                        DEFAULT_ALIAS,
+                        privateKey,
+                        new char[0],
+                        new Certificate[]{newCert}
+                );
                 keyManagerFactory.init(newKS, password);
-            }else {
+            } else {
                 X509Certificate cert = CertPool.getCert(remoteCN, caConfig);
                 X509Certificate[] keyCertChain = new X509Certificate[]{cert};
                 keyStore.load(null, null);
@@ -168,7 +190,8 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
         m_serverSocketFactory = m_sslContext.getServerSocketFactory();
     }
 
-    public final ServerSocket createServerSocket(String localHost, int localPort) throws IOException {
+    public final ServerSocket createServerSocket(String localHost, int localPort) throws
+            IOException {
         final SSLServerSocket socket =
                 (SSLServerSocket) m_serverSocketFactory.createServerSocket(
                         localPort, 50, InetAddress.getByName(localHost));
@@ -184,6 +207,7 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
                         remotePort
                 );
         socket.setEnabledCipherSuites(socket.getSupportedCipherSuites());
+        //socket.setSoTimeout(15000);
         socket.startHandshake();
         return socket;
     }
