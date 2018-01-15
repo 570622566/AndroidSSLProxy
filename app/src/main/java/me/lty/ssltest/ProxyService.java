@@ -50,8 +50,12 @@ public class ProxyService extends Service {
     class ServerThread extends Thread {
         @Override
         public void run() {
-            MITMProxyServer mitmProxyServer = new MITMProxyServer();
-            mitmProxyServer.run();
+            try {
+                MITMProxyServer server = new MITMProxyServer();
+                server.run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
