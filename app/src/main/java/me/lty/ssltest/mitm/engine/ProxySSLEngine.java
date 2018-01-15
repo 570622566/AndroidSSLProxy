@@ -8,7 +8,6 @@ import java.net.Socket;
 import java.util.HashMap;
 
 import me.lty.ssltest.mitm.ConnectionDetails;
-import me.lty.ssltest.mitm.MITMProxyServer;
 import me.lty.ssltest.mitm.ProxyDataFilter;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSocketFactory;
