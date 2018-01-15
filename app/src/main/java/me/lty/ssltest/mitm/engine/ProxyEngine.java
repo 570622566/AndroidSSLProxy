@@ -37,8 +37,10 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import me.lty.ssltest.mitm.ClientB2ServerA;
 import me.lty.ssltest.mitm.ConnectionDetails;
 import me.lty.ssltest.mitm.ProxyDataFilter;
+import me.lty.ssltest.mitm.ServerA2ClientB;
 import me.lty.ssltest.mitm.StreamThread;
 import me.lty.ssltest.mitm.factory.MITMSocketFactory;
 
@@ -101,7 +103,7 @@ public abstract class ProxyEngine implements Runnable {
                                           OutputStream localOutputStream,
                                           String remoteHost,
                                           int remotePort) throws IOException {
-        new StreamThread(
+        new ServerA2ClientB(
                 new ConnectionDetails(
                         m_connectionDetails.getLocalHost(),
                         localSocket.getPort(),
@@ -115,7 +117,7 @@ public abstract class ProxyEngine implements Runnable {
                 m_outputWriter
         );
 
-        new StreamThread(
+        new ClientB2ServerA(
                 new ConnectionDetails(
                         remoteHost,
                         remoteSocket.getPort(),

@@ -59,8 +59,10 @@ public class StreamThread implements Runnable {
                     break;
                 }
 
+                //final byte[] newBytes =
+                //        m_filter.handle(m_connectionDetails, buffer, bytesRead);
                 final byte[] newBytes =
-                        m_filter.handle(m_connectionDetails, buffer, bytesRead);
+                        m_filter.handle(getTAG(),m_connectionDetails, buffer, bytesRead);
 
                 m_outputWriter.flush();
 
@@ -95,5 +97,9 @@ public class StreamThread implements Runnable {
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
+    }
+
+    public String getTAG() {
+        return TAG;
     }
 }

@@ -11,6 +11,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 */
 
+import android.util.Log;
+
 import java.io.PrintWriter;
 
 /*
@@ -74,6 +76,49 @@ public class ProxyDataFilter {
         m_out.println("------ " + connectionDetails.getDescription() +
                               " ------");
         m_out.println(stringBuffer);
+
+        return null;
+    }
+
+    public byte[] handle(String tag,ConnectionDetails connectionDetails,
+                         byte[] buffer, int bytesRead)
+            throws java.io.IOException {
+        final StringBuffer stringBuffer = new StringBuffer();
+
+        boolean inHex = false;
+
+        for (int i = 0; i < bytesRead; i++) {
+            final int value = (buffer[i] & 0xFF);
+
+            // If it's ASCII, print it as a char.
+            if (value == '\r' || value == '\n' ||
+                    (value >= ' ' && value <= '~')) {
+
+                if (inHex) {
+                    stringBuffer.append(']');
+                    inHex = false;
+                }
+
+                stringBuffer.append((char) value);
+            } else { // else print the value
+                if (!inHex) {
+                    stringBuffer.append('[');
+                    inHex = true;
+                }
+
+                if (value <= 0xf) { // Where's "HexNumberFormatter?"
+                    stringBuffer.append("0");
+                }
+
+                stringBuffer.append(Integer.toHexString(value).toUpperCase());
+            }
+        }
+
+        m_out.println("------ " + connectionDetails.getDescription() +
+                              " ------");
+        m_out.println(stringBuffer);
+
+        Log.wtf(tag,stringBuffer.toString());
 
         return null;
     }

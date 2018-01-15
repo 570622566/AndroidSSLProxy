@@ -42,6 +42,9 @@ public class CopyStreamRunnable implements Runnable {
                 if (bytesRead == 0) {
                     idle++;
                 } else {
+                    final String line = new String(buffer, 0, bytesRead, "US-ASCII");
+                    Log.wtf("log",line);
+
                     m_out.write(buffer, 0, bytesRead);
                     idle = 0;
                 }
@@ -52,11 +55,11 @@ public class CopyStreamRunnable implements Runnable {
             }
         } catch (IOException e) {
             // Be silent about IOExceptions ...
-            Log.d(TAG,"Got catch");
+            Log.d(TAG,"Got catch ---  1");
             e.printStackTrace();
         } catch (InterruptedException e) {
             // ... and InterruptedExceptions.
-            Log.d(TAG,"Got catch");
+            Log.d(TAG,"Got catch ---  1");
             e.printStackTrace();
         }
 
@@ -68,7 +71,7 @@ public class CopyStreamRunnable implements Runnable {
             m_out.close();
             m_in.close();
         } catch (IOException e) {
-            Log.d(TAG,"Got catch");
+            Log.d(TAG,"Got catch ---  1");
             e.printStackTrace();
         }
     }

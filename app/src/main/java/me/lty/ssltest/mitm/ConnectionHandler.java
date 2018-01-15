@@ -54,8 +54,6 @@ public class ConnectionHandler implements Runnable {
 
             // 'grep' for CONNECT message and extract the remote server/port
             if ("CONNECT".equals(httpRequest.getMethod().name())) {
-                while (inputStream.read(new byte[10240], 0, inputStream.available()) > 0) {
-                }
                 //then we have a proxy CONNECT message!
                 final String remoteHost = httpRequest.getRemoteHost();
 
