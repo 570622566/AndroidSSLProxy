@@ -46,7 +46,6 @@ public class DefaultAsyncRunner implements AsyncRunner {
     public void exec(ConnectionHandler clientHandler) {
         ++this.requestCount;
         Thread t = new Thread(clientHandler);
-        t.setDaemon(true);
         t.setName("Request Processor (#" + this.requestCount + ")");
         this.running.add(clientHandler);
         t.start();
