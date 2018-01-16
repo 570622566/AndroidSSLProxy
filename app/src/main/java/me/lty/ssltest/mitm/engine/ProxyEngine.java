@@ -27,9 +27,6 @@ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
 
 */
 
-import android.util.Log;
-
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,8 +44,7 @@ import me.lty.ssltest.mitm.factory.MITMSocketFactory;
 
 public abstract class ProxyEngine implements Runnable {
 
-    private static final String TAG = ProxyEngine.class.getSimpleName();
-
+    public static final String ACCEPT_TIMEOUT_MESSAGE = "Listen time out";
     private final ProxyDataFilter m_requestFilter;
     private final ProxyDataFilter m_responseFilter;
     private final ConnectionDetails m_connectionDetails;
@@ -56,7 +52,6 @@ public abstract class ProxyEngine implements Runnable {
     private final PrintWriter m_outputWriter;
 
     public final MITMSocketFactory m_socketFactory;
-    protected ServerSocket m_serverSocket;
 
     public ProxyEngine(MITMSocketFactory socketFactory,
                        ProxyDataFilter requestFilter,
@@ -69,21 +64,11 @@ public abstract class ProxyEngine implements Runnable {
         m_connectionDetails = connectionDetails;
 
         m_outputWriter = requestFilter.getOutputPrintWriter();
-
-        m_serverSocket =
-                m_socketFactory.createServerSocket(
-                        connectionDetails.getLocalHost(),
-                        connectionDetails.getLocalPort()
-                );
     }
 
     //run() method from Runnable is implemented in subclasses
 
-    public final ServerSocket getServerSocket() {
-        return m_serverSocket;
-    }
-
-    public final MITMSocketFactory getSocketFactory() {
+    public final MITMSocketFactory getSSLSocketFactory() {
         return m_socketFactory;
     }
 
@@ -98,7 +83,7 @@ public abstract class ProxyEngine implements Runnable {
      * (2) Copy data sent from the remote server to the client
      *
      */
-    public final void launchThreadPair(Socket localSocket, Socket remoteSocket,
+    protected final void launchThreadPair(Socket localSocket, Socket remoteSocket,
                                           InputStream localInputStream,
                                           OutputStream localOutputStream,
                                           String remoteHost,
@@ -130,36 +115,6 @@ public abstract class ProxyEngine implements Runnable {
                 m_responseFilter,
                 m_outputWriter
         );
-    }
-
-    public static void safeClose(Object closeable) {
-        try {
-            if (closeable != null) {
-                if (closeable instanceof Closeable) {
-                    ((Closeable) closeable).close();
-                } else if (closeable instanceof Socket) {
-                    ((Socket) closeable).close();
-                } else if (closeable instanceof ServerSocket) {
-                    ((ServerSocket) closeable).close();
-                } else {
-                    throw new IllegalArgumentException("Unknown object to close");
-                }
-            }
-        } catch (IOException e) {
-            Log.e(TAG,"Could not close");
-            e.printStackTrace(System.err);
-        }
-    }
-
-    public static void sendClientResponse(OutputStream out, String msg, String remoteHost, int
-            remotePort) throws IOException {
-        final StringBuffer response = new StringBuffer();
-        response.append("HTTP/1.1 ").append(msg).append("\r\n");
-        response.append("Host: " + remoteHost + ":" + remotePort + "\r\n");
-        response.append("Proxy-agent: CS255-MITMProxy/1.0\r\n");
-        response.append("\r\n");
-        out.write(response.toString().getBytes());
-        out.flush();
     }
 }
 

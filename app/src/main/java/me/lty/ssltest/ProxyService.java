@@ -5,7 +5,7 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
-import me.lty.ssltest.mitm.MITMProxyServer;
+import me.lty.ssltest.mitm.impl.bootstrap.MITMProxyServer;
 
 /**
  * Describe
@@ -51,8 +51,8 @@ public class ProxyService extends Service {
         @Override
         public void run() {
             try {
-                MITMProxyServer server = new MITMProxyServer();
-                server.run();
+                MITMProxyServer server = new MITMProxyServer(9990);
+                server.start();
             } catch (Exception e) {
                 e.printStackTrace();
             }

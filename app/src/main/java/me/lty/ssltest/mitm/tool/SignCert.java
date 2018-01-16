@@ -28,7 +28,6 @@ import android.util.Log;
 
 import iaik.asn1.structures.*;
 import iaik.x509.X509Certificate;
-import me.lty.ssltest.mitm.MITMProxyServer;
 
 import java.io.FileInputStream;
 import java.io.IOException;

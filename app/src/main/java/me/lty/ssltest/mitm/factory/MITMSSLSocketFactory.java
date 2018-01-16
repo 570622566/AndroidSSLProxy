@@ -28,19 +28,13 @@ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
 */
 
 import android.content.res.AssetManager;
-import android.util.Log;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URL;
-import java.net.URLConnection;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -51,6 +45,7 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
+import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
@@ -199,15 +194,14 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
         return socket;
     }
 
-    public final Socket createClientSocket(String remoteHost, int remotePort)
-            throws IOException {
+    @Override
+    public Socket createClientSocket(String remoteHost, int remotePort) throws IOException {
         final SSLSocket socket =
                 (SSLSocket) m_clientSocketFactory.createSocket(
                         remoteHost,
                         remotePort
                 );
         socket.setEnabledCipherSuites(socket.getSupportedCipherSuites());
-        //socket.setSoTimeout(15000);
         socket.startHandshake();
         return socket;
     }

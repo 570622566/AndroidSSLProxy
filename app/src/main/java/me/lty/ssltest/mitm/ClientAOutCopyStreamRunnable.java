@@ -6,22 +6,21 @@ package me.lty.ssltest.mitm;// This file is part of The Grinder software distrib
 import android.util.Log;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 
 /**
  * Runnable that actively copies from an InputStream to
  * an OutputStream.
  */
-public class CopyStreamRunnable implements Runnable {
+public class ClientAOutCopyStreamRunnable implements Runnable {
 
     private final String TAG;
-
-    private final InputStream m_in;
+    private final Socket socket;
     private final OutputStream m_out;
 
-    public CopyStreamRunnable(InputStream in, OutputStream out,String tag) {
-        m_in = in;
+    public ClientAOutCopyStreamRunnable(Socket clientA , OutputStream out, String tag) {
+        socket = clientA;
         m_out = out;
         TAG = tag;
     }
@@ -33,7 +32,11 @@ public class CopyStreamRunnable implements Runnable {
             short idle = 0;
 
             while (true) {
-                final int bytesRead = m_in.read(buffer, 0, buffer.length);
+                if (!socket.isConnected()){
+                    Log.d("wait ------","wait connected");
+                    continue;
+                }
+                final int bytesRead = socket.getInputStream().read(buffer, 0, buffer.length);
 
                 if (bytesRead == -1) {
                     break;
@@ -69,7 +72,8 @@ public class CopyStreamRunnable implements Runnable {
         try {
             Log.d(TAG,"close our stream");
             m_out.close();
-            m_in.close();
+            socket.getInputStream().close();
+            socket.close();
         } catch (IOException e) {
             Log.d(TAG,"Got catch ---  1");
             e.printStackTrace();

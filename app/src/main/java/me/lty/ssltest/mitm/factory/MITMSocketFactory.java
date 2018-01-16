@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import javax.net.ssl.HandshakeCompletedListener;
+
 public interface MITMSocketFactory {
 
     public final static String DEFAULT_ALIAS = "ca";

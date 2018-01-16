@@ -3,6 +3,8 @@ package me.lty.ssltest.mitm;// This file is part of The Grinder software distrib
 // licensing details. The Grinder distribution is available on the
 // Internet at http://grinder.sourceforge.net/
 
+import android.util.Log;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -38,7 +40,10 @@ public class StreamThread implements Runnable {
         m_filter = filter;
         m_outputWriter = outputWriter;
 
-        final Thread t = new Thread(this, "Filter thread for " + m_connectionDetails.getDescription());
+        final Thread t = new Thread(
+                this,
+                "Filter thread for " + m_connectionDetails.getDescription()
+        );
         try {
             m_filter.connectionOpened(m_connectionDetails);
         } catch (Exception e) {
@@ -59,18 +64,13 @@ public class StreamThread implements Runnable {
                     break;
                 }
 
-                //final byte[] newBytes =
-                //        m_filter.handle(m_connectionDetails, buffer, bytesRead);
-                final byte[] newBytes =
-                        m_filter.handle(getTAG(),m_connectionDetails, buffer, bytesRead);
+                m_filter.handle(getTAG(), m_connectionDetails, buffer, bytesRead);
 
+                String s = new String(buffer, 0, bytesRead);
+                Log.d(getTAG(),s);
                 m_outputWriter.flush();
 
-                if (newBytes != null) {
-                    m_out.write(newBytes);
-                } else {
-                    m_out.write(buffer, 0, bytesRead);
-                }
+                m_out.write(buffer, 0, bytesRead);
             }
         } catch (SocketException e) {
             e.printStackTrace(System.err);
