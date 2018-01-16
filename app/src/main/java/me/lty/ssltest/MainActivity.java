@@ -14,9 +14,19 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.List;
+
+import javax.net.ssl.SSLContext;
 
 import me.lty.ssltest.mitm.tool.CertUtil;
 
@@ -35,7 +45,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         certStatus = findViewById(R.id.textView);
         Button button = findViewById(R.id.button);
+        Button test = findViewById(R.id.test);
         button.setOnClickListener(this);
+        test.setOnClickListener(this);
     }
 
     @Override
@@ -77,7 +89,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        installCert();
+        if (v.getId() == R.id.button){
+            installCert();
+        }else {
+            try {
+                SSLContext tls = SSLContext.getInstance("TLS");
+                tls.init(null,null,new SecureRandom());
+                Socket socket = tls.getSocketFactory()
+                                   .createSocket(InetAddress.getLocalHost(), 9991);
+
+                String str = "GET / HTTP/1.1\r\n+Host: api.55xiyu.cn\r\n";
+
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                writer.write(str);
+                writer.flush();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override

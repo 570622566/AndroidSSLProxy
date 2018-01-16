@@ -74,7 +74,7 @@ public class ProxySSLEngine extends ProxyEngine {
         }
         m_serverSocket = ssf.createServerSocket(
                 getConnectionDetails().getLocalHost(),
-                9991
+                0
         );
         return m_serverSocket;
     }

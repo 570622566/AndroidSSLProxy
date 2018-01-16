@@ -2,12 +2,15 @@ package me.lty.ssltest.mitm;
 
 import android.util.Log;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.cert.X509Certificate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLSocket;
 
@@ -35,30 +38,57 @@ public class ConnectionHandler implements Runnable {
     private static final String TAG = ConnectionHandler.class.getSimpleName();
 
     private AsyncRunner mAsyncRunner;
-    private Socket mAcceptSocket;
+    private final Socket mAcceptSocket;
     private ProxySSLEngine m_proxySSLEngine;
+    private Pattern m_httpsConnectPattern;
 
     public ConnectionHandler(AsyncRunner asyncRunner, Socket connection, ProxySSLEngine
             proxySSLEngine) {
         this.mAsyncRunner = asyncRunner;
         this.mAcceptSocket = connection;
         this.m_proxySSLEngine = proxySSLEngine;
+
+        m_httpsConnectPattern =
+                Pattern.compile(
+                        "^CONNECT[ \\t]+([^:]+):(\\d+).*\r\n\r\n",
+                        Pattern.DOTALL
+                );
     }
 
     @Override
     public void run() {
+        final byte[] buffer = new byte[40960];
         try {
-            InputStream inputStream = mAcceptSocket.getInputStream();
-            HttpRequest httpRequest = new HttpRequest(inputStream);
-            Log.e(TAG, httpRequest.toString());
+            // Grab the first plaintext upstream buffer, which we're hoping is
+            // a CONNECT message.
+            final BufferedInputStream in =
+                    new BufferedInputStream(
+                            mAcceptSocket.getInputStream(),
+                            buffer.length
+                    );
+
+            in.mark(buffer.length);
+
+            // Read a buffer full.
+            final int bytesRead = in.read(buffer);
+
+            final String line = bytesRead > 0 ? new String(buffer, 0, bytesRead, "US-ASCII") : "";
+
+            final Matcher httpsConnectMatcher =
+                    m_httpsConnectPattern.matcher(line);
 
             // 'grep' for CONNECT message and extract the remote server/port
-            if ("CONNECT".equals(httpRequest.getMethod().name())) {
+
+            if (httpsConnectMatcher.find()) {//then we have a proxy CONNECT message!
+                // Discard any other plaintext data the client sends us:
+                while (in.read(buffer, 0, in.available()) > 0) {
+                }
+
                 //then we have a proxy CONNECT message!
-                final String remoteHost = httpRequest.getRemoteHost();
+                final String remoteHost = httpsConnectMatcher.group(1);
 
                 // Must be a port number by specification.
-                final int remotePort = httpRequest.getRemotePort();
+                final int remotePort = Integer.parseInt(httpsConnectMatcher.group(2));
 
                 final String target = remoteHost + ":" + remotePort;
 
@@ -131,7 +161,7 @@ public class ConnectionHandler implements Runnable {
                 // sslProxySocket, and vice versa.
                 new Thread(
                         new CopyStreamRunnable(
-                                inputStream,
+                                in,
                                 sslProxySocket.getOutputStream(),
                                 "Copy to proxy engine for " + target
                         ), "Copy to proxy engine for " + target
