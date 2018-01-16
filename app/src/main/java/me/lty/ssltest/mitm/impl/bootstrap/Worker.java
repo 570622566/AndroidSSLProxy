@@ -20,7 +20,7 @@ import javax.net.ssl.SSLSocket;
 import me.lty.ssltest.mitm.ClientAOutCopyStreamRunnable;
 import me.lty.ssltest.mitm.ConnectionDetails;
 import me.lty.ssltest.mitm.CopyStreamRunnable;
-import me.lty.ssltest.mitm.ProxyDataFilter;
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
 import me.lty.ssltest.mitm.engine.ProxyEngine;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSocketFactory;

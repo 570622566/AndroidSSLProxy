@@ -10,6 +10,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.SocketException;
 
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
+
 /**
  * Copies bytes from an InputStream to an OutputStream.  Uses a
  * ProxyDataFilter to log the contents appropriately.

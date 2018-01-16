@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 SSLContext tls = SSLContext.getInstance("TLS");
                 tls.init(null,null,new SecureRandom());
                 Socket socket = tls.getSocketFactory()
-                                   .createSocket(InetAddress.getLocalHost(), 9991);
+                                   .createSocket(InetAddress.getLocalHost(), 9589);
 
                 String str = "GET / HTTP/1.1\r\n+Host: api.55xiyu.cn\r\n";
 
@@ -156,18 +156,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void setupWifiProxyConfig() {
-        String host = "127.0.0.1";
-        int port = 9990;
         WifiProxyUtil wifiProxyUtil = WifiProxyUtil.getInstance(this);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             try {
-                wifiProxyUtil.setHttpPorxySetting(host, port, null);
+                wifiProxyUtil.setHttpPorxySetting(Config.PROXY_SERVER_LISTEN_HOST, Config.PROXY_SERVER_LISTEN_PORT, null);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         } else {
-            wifiProxyUtil.setWifiProxySettingsFor17And(host, port, null);
+            wifiProxyUtil.setWifiProxySettingsFor17And(Config.PROXY_SERVER_LISTEN_HOST, Config.PROXY_SERVER_LISTEN_PORT, null);
         }
     }
 }

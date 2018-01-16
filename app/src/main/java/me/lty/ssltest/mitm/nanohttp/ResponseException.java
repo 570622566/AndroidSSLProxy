@@ -1,6 +1,6 @@
 package me.lty.ssltest.mitm.nanohttp;
 
-class ResponseException extends Exception {
+public class ResponseException extends Exception {
 
         private static final long serialVersionUID = 6569838532917408380L;
 

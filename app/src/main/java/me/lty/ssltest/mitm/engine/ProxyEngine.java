@@ -35,7 +35,7 @@ import java.net.Socket;
 
 import me.lty.ssltest.mitm.ClientB2ServerA;
 import me.lty.ssltest.mitm.ConnectionDetails;
-import me.lty.ssltest.mitm.ProxyDataFilter;
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
 import me.lty.ssltest.mitm.ServerA2ClientB;
 import me.lty.ssltest.mitm.factory.MITMSocketFactory;
 

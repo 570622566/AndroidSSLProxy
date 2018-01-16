@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLException;
 
-import static me.lty.ssltest.mitm.engine.ProxyEngine.safeClose;
+import static me.lty.ssltest.mitm.ProxyUtil.safeClose;
 
 /**
  * Describe

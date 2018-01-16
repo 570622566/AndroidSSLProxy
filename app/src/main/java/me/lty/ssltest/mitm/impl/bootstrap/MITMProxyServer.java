@@ -37,9 +37,12 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import me.lty.ssltest.App;
-import me.lty.ssltest.mitm.ProxyDataFilter;
+import me.lty.ssltest.Config;
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
 import me.lty.ssltest.mitm.factory.MITMPlainSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
+import me.lty.ssltest.mitm.filter.RequestDataFilter;
+import me.lty.ssltest.mitm.filter.ResponseDataFilter;
 
 //import me.lty.ssltest.mitm.engine.HTTPSProxyEngine;
 
@@ -66,15 +69,15 @@ public class MITMProxyServer {
     private ProxyDataFilter responseFilter;
 
     private ServerSocket mServerSocket;
-    private String localHost = "localhost";
+    private String localHost = Config.PROXY_SERVER_LISTEN_HOST;
 
     public MITMProxyServer(final int port) {
         this.port = port;
 
 
         // Default values.
-        requestFilter = new ProxyDataFilter();
-        responseFilter = new ProxyDataFilter();
+        requestFilter = new RequestDataFilter();
+        responseFilter = new ResponseDataFilter();
 
         String filename = App.context().getFilesDir() + "/out.txt";
 
