@@ -147,12 +147,6 @@ public class CertUtil {
         return (X509Certificate) cf.generateCertificate(inputStream);
     }
 
-    public static iaik.x509.X509Certificate loadCert1(InputStream inputStream) throws Exception {
-        CertificateFactory cf = CertificateFactory.getInstance("X.509", "IAIK");
-        return (iaik.x509.X509Certificate) cf.generateCertificate(inputStream);
-        //return (iaik.x509.X509Certificate) cf.generateCertificate(inputStream);
-    }
-
     /**
      * 从文件加载证书
      */

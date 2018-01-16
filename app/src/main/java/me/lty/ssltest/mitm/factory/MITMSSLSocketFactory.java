@@ -57,7 +57,6 @@ import me.lty.ssltest.App;
 import me.lty.ssltest.mitm.CAConfig;
 import me.lty.ssltest.mitm.CertPool;
 import me.lty.ssltest.mitm.tool.CertUtil;
-import me.lty.ssltest.mitm.tool.SignCert;
 
 
 /**
@@ -94,7 +93,7 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
      * that is initialized with a fixed CA certificate
      */
     public MITMSSLSocketFactory() throws Exception {
-        init(null, null);
+        init(null);
     }
 
     /**
@@ -104,18 +103,12 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
      */
     public MITMSSLSocketFactory(String remoteCN)
             throws Exception {
-        init(remoteCN, null);
+        init(remoteCN);
     }
 
-    public MITMSSLSocketFactory(String remoteCN, iaik.x509.X509Certificate remoteServerCert)
-            throws Exception {
-        init(remoteCN, remoteServerCert);
-    }
-
-    private void init(String remoteCN, iaik.x509.X509Certificate remoteServerCert) throws
+    private void init(String remoteCN) throws
             Exception {
         Security.addProvider(new BouncyCastleProvider());
-        Security.addProvider(new iaik.security.provider.IAIK());
 
         AssetManager assets = App.context().getAssets();
         if (caConfig == null) {
@@ -143,32 +136,11 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
         final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 
         if (remoteCN != null) {
-            if (remoteServerCert != null) {
-                PrivateKey privateKey = CertUtil.loadPriKey(assets.open(("ca_private.der")));
-                iaik.x509.X509Certificate cert = CertUtil.loadCert1(assets.open("ca.crt"));
-                char[] password = new char[0];
-                iaik.x509.X509Certificate newCert = SignCert.forgeCert(
-                        privateKey,
-                        cert,
-                        remoteCN,
-                        remoteServerCert
-                );
-                KeyStore newKS = KeyStore.getInstance(KeyStore.getDefaultType());
-                newKS.load(null, null);
-                newKS.setKeyEntry(
-                        DEFAULT_ALIAS,
-                        privateKey,
-                        new char[0],
-                        new Certificate[]{newCert}
-                );
-                keyManagerFactory.init(newKS, password);
-            } else {
-                X509Certificate cert = CertPool.getCert(remoteCN, caConfig);
-                X509Certificate[] keyCertChain = new X509Certificate[]{cert};
-                keyStore.load(null, null);
-                keyStore.setKeyEntry("key", caConfig.getServerPriKey(), null, keyCertChain);
-                keyManagerFactory.init(keyStore, null);
-            }
+            X509Certificate cert = CertPool.getCert(remoteCN, caConfig);
+            X509Certificate[] keyCertChain = new X509Certificate[]{cert};
+            keyStore.load(null, null);
+            keyStore.setKeyEntry("key", caConfig.getServerPriKey(), null, keyCertChain);
+            keyManagerFactory.init(keyStore, null);
             m_sslContext.init(
                     keyManagerFactory.getKeyManagers(),
                     new TrustManager[]{new TrustEveryone()},

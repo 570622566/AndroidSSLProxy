@@ -340,33 +340,6 @@ public class Worker implements Runnable {
             return m_sslServerSocketA;
         }
 
-        public final ServerSocket createServerSocket(String remoteServerCN, iaik
-                .x509.X509Certificate remoteServerCert)
-                throws Exception {
-
-            assert remoteServerCN != null;
-
-            MITMSSLSocketFactory ssf = null;
-
-            if (mSsfCache.get(remoteServerCN) == null) {
-                //Instantiate a NEW SSLSocketFactory with a cert that's based on the remote
-                // server's Common Name
-                System.out.println("[HTTPSProxyEngine] Creating a new certificate for " +
-                                           remoteServerCN);
-                ssf = new MITMSSLSocketFactory(remoteServerCN, remoteServerCert);
-                mSsfCache.put(remoteServerCN, ssf);
-            } else {
-                System.out.println("[HTTPSProxyEngine] Found cached certificate for " +
-                                           remoteServerCN);
-                ssf = (MITMSSLSocketFactory) mSsfCache.get(remoteServerCN);
-            }
-            m_sslServerSocketA = (SSLServerSocket) ssf.createServerSocket(
-                    getConnectionDetails().getLocalHost(),
-                    0
-            );
-            return m_sslServerSocketA;
-        }
-
         /*
          * localSocket.get[In|Out]putStream() is data that's (indirectly)
          * being read from / written to the client.
