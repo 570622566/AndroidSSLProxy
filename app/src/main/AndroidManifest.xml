@@ -24,6 +24,8 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".SessionDetailActivity" />
+
         <service android:name=".ProxyService"/>
     </application>
 

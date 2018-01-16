@@ -147,12 +147,6 @@ public class CertUtil {
         return (X509Certificate) cf.generateCertificate(inputStream);
     }
 
-    public static iaik.x509.X509Certificate loadCert1(InputStream inputStream) throws Exception {
-        CertificateFactory cf = CertificateFactory.getInstance("X.509", "IAIK");
-        return (iaik.x509.X509Certificate) cf.generateCertificate(inputStream);
-        //return (iaik.x509.X509Certificate) cf.generateCertificate(inputStream);
-    }
-
     /**
      * 从文件加载证书
      */
@@ -165,18 +159,6 @@ public class CertUtil {
      */
     //public static X509Certificate loadCert(URI uri) throws Exception {
     //    return loadCert(Paths.get(uri).toString());
-    //}
-
-    /**
-     * 读取ssl证书使用者信息
-     */
-    //public static String getSubject(InputStream inputStream) throws Exception {
-    //    X509Certificate certificate = loadCert(inputStream);
-    //    //读出来顺序是反的需要反转下
-    //    List<String> tempList = Arrays.asList(certificate.getIssuerDN().toString().split(", "));
-    //    return IntStream.rangeClosed(0, tempList.size() - 1)
-    //                    .mapToObj(i -> tempList.get(tempList.size() - i - 1))
-    //                    .collect(Collectors.joining(", "));
     //}
 
     /**

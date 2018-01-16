@@ -2,10 +2,11 @@ package me.lty.ssltest;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
-import me.lty.ssltest.mitm.MITMProxyServer;
+import me.lty.ssltest.mitm.impl.bootstrap.MITMProxyServer;
 
 /**
  * Describe
@@ -19,7 +20,7 @@ import me.lty.ssltest.mitm.MITMProxyServer;
  * @author lty
  * @version v1.0
  */
-public class ProxyService extends Service{
+public class ProxyService extends Service {
 
     private ServerThread thread;
 
@@ -36,7 +37,12 @@ public class ProxyService extends Service{
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        thread = new ServerThread();
+        Bundle extras = intent.getExtras();
+        int listen_port = Config.PROXY_SERVER_LISTEN_PORT;
+        if (extras != null) {
+            listen_port = extras.getInt("listen_port");
+        }
+        thread = new ServerThread(listen_port);
         thread.start();
         return super.onStartCommand(intent, flags, startId);
     }
@@ -47,11 +53,22 @@ public class ProxyService extends Service{
         thread.interrupt();
     }
 
-    class ServerThread extends Thread{
+    class ServerThread extends Thread {
+
+        private final int listen_port;
+
+        public ServerThread(int port) {
+            listen_port = port;
+        }
+
         @Override
         public void run() {
-            MITMProxyServer mitmProxyServer = new MITMProxyServer();
-            mitmProxyServer.run();
+            try {
+                MITMProxyServer server = new MITMProxyServer(listen_port);
+                server.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }

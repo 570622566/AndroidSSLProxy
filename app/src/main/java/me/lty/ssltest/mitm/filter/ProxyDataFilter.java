@@ -1,4 +1,4 @@
-package me.lty.ssltest.mitm;/*
+package me.lty.ssltest.mitm.filter;/*
 Copyright 2007 Srinivas Inguva
 
 Redistribution and use in source and binary forms, with or without modification, are permitted
@@ -28,6 +28,9 @@ import android.util.Log;
 
 import java.io.PrintWriter;
 
+import me.lty.ssltest.mitm.ConnectionDetails;
+import me.lty.ssltest.mitm.nanohttp.Request;
+
 /*
  * This class is used to record data that passes back and forth over a TCP
  * connection.  Output goes to a PrintWriter, whose default value is System.out.
@@ -41,6 +44,9 @@ import java.io.PrintWriter;
  */
 
 public class ProxyDataFilter {
+
+    private static final String TAG = ProxyDataFilter.class.getSimpleName();
+
     private PrintWriter m_out = new PrintWriter(System.out, true);
 
     public void setOutputPrintWriter(PrintWriter outputPrintWriter) {
@@ -52,11 +58,22 @@ public class ProxyDataFilter {
         return m_out;
     }
 
-    public byte[] handle(ConnectionDetails connectionDetails,
-                         byte[] buffer, int bytesRead)
+    public void handle(String tag, ConnectionDetails connectionDetails, byte[] buffer, int
+            bytesRead)
             throws java.io.IOException {
+
         final StringBuffer stringBuffer = new StringBuffer();
 
+        Hex2Char(buffer, bytesRead, stringBuffer);
+
+        m_out.println("------ " + connectionDetails.getDescription() +
+                              " ------");
+        m_out.println(stringBuffer);
+
+        Log.wtf(tag, stringBuffer.toString());
+    }
+
+    private void Hex2Char(byte[] buffer, int bytesRead, StringBuffer stringBuffer) {
         boolean inHex = false;
 
         for (int i = 0; i < bytesRead; i++) {
@@ -85,12 +102,6 @@ public class ProxyDataFilter {
                 stringBuffer.append(Integer.toHexString(value).toUpperCase());
             }
         }
-
-        m_out.println("------ " + connectionDetails.getDescription() +
-                              " ------");
-        m_out.println(stringBuffer);
-
-        return null;
     }
 
     public byte[] handle(String tag, ConnectionDetails connectionDetails,

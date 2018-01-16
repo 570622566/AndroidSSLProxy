@@ -10,20 +10,21 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.SocketException;
 
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
+
 /**
  * Copies bytes from an InputStream to an OutputStream.  Uses a
  * ProxyDataFilter to log the contents appropriately.
  */
 public class StreamThread implements Runnable {
-
-    private static final String TAG = StreamThread.class.getSimpleName();
-
     // For simplicity, the filters take a buffer oriented approach.
     // This means that they all break at buffer boundaries. Our buffer
     // is huge, so we shouldn't practically cause a problem, but the
     // network clearly can by giving us message fragments. 
     // We really ought to take a stream oriented approach.
     private final static int BUFFER_SIZE = 65536;
+
+    private static final String TAG = StreamThread.class.getSimpleName();
 
     private final ConnectionDetails m_connectionDetails;
     private final InputStream m_in;
@@ -41,13 +42,10 @@ public class StreamThread implements Runnable {
         m_filter = filter;
         m_outputWriter = outputWriter;
 
-        final Thread t =
-                new Thread(
-                        this,
-                        "Filter thread for " +
-                                m_connectionDetails.getDescription()
-                );
-
+        final Thread t = new Thread(
+                this,
+                "Filter thread for " + m_connectionDetails.getDescription()
+        );
         try {
             m_filter.connectionOpened(m_connectionDetails);
         } catch (Exception e) {
@@ -68,25 +66,16 @@ public class StreamThread implements Runnable {
                     break;
                 }
 
-                //final byte[] newBytes =
-                //        m_filter.handle(m_connectionDetails, buffer, bytesRead);
+                m_filter.handle(getTAG(), m_connectionDetails, buffer, bytesRead);
 
-                final String line = new String(buffer, 0, bytesRead, "US-ASCII");
-
-                Log.wtf(getTag(),line);
-
-                final byte[] newBytes =
-                        m_filter.handle(getTag(), m_connectionDetails, buffer, bytesRead);
-
+                String s = new String(buffer, 0, bytesRead);
+                Log.d(getTAG(),s);
                 m_outputWriter.flush();
 
-                if (newBytes != null) {
-                    m_out.write(newBytes);
-                } else {
-                    m_out.write(buffer, 0, bytesRead);
-                }
+                m_out.write(buffer, 0, bytesRead);
             }
         } catch (SocketException e) {
+            e.printStackTrace(System.err);
             // Be silent about SocketExceptions.
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -103,18 +92,16 @@ public class StreamThread implements Runnable {
         // We're exiting, usually because the in stream has been
         // closed. Whatever, close our streams. This will cause the
         // paired thread to exit to.
-        try {
-            m_out.close();
-        } catch (Exception e) {
-        }
 
         try {
+            m_out.close();
             m_in.close();
         } catch (Exception e) {
+            e.printStackTrace(System.err);
         }
     }
 
-    public String getTag() {
+    public String getTAG() {
         return TAG;
     }
 }

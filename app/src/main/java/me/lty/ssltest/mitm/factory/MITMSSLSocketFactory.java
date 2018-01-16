@@ -1,4 +1,5 @@
-package me.lty.ssltest.mitm.factory;//Based on SnifferSSLSocketFactory.java from The Grinder distribution.
+package me.lty.ssltest.mitm.factory;//Based on SnifferSSLSocketFactory.java from The Grinder
+// distribution.
 // The Grinder distribution is available at http://grinder.sourceforge.net/
 /*
 Copyright 2007 Srinivas Inguva
@@ -30,27 +31,29 @@ import android.content.res.AssetManager;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import javax.net.ServerSocketFactory;
-import javax.net.SocketFactory;
-import javax.net.ssl.*;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.KeyPair;
 import java.security.KeyStore;
-import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+
+import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import me.lty.ssltest.App;
 import me.lty.ssltest.mitm.CAConfig;
 import me.lty.ssltest.mitm.CertPool;
 import me.lty.ssltest.mitm.tool.CertUtil;
-import me.lty.ssltest.mitm.tool.SignCert;
 
 
 /**
@@ -60,11 +63,10 @@ import me.lty.ssltest.mitm.tool.SignCert;
  * allow creation of factories with custom parameters.
  */
 public final class MITMSSLSocketFactory implements MITMSocketFactory {
-    private SSLServerSocketFactory m_serverSocketFactory;
-    private SSLSocketFactory m_clientSocketFactory;
-    private SSLContext m_sslContext;
 
-    public KeyStore ks = null;
+    private ServerSocketFactory m_serverSocketFactory;
+    private SocketFactory m_clientSocketFactory;
+    private SSLContext m_sslContext;
 
     private CAConfig caConfig;
 
@@ -87,7 +89,7 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
      * that is initialized with a fixed CA certificate
      */
     public MITMSSLSocketFactory() throws Exception {
-        init(null,null);
+        init(null);
     }
 
     /**
@@ -97,18 +99,12 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
      */
     public MITMSSLSocketFactory(String remoteCN)
             throws Exception {
-        init(remoteCN, null);
+        init(remoteCN);
     }
 
-    public MITMSSLSocketFactory(String remoteCN, iaik.x509.X509Certificate remoteServerCert)
-            throws Exception {
-        init(remoteCN, remoteServerCert);
-    }
-
-    private void init(String remoteCN, iaik.x509.X509Certificate remoteServerCert) throws
+    private void init(String remoteCN) throws
             Exception {
         Security.addProvider(new BouncyCastleProvider());
-        Security.addProvider(new iaik.security.provider.IAIK());
 
         AssetManager assets = App.context().getAssets();
         if (caConfig == null) {
@@ -136,22 +132,11 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
         final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 
         if (remoteCN != null) {
-            if (remoteServerCert != null) {
-                PrivateKey privateKey = CertUtil.loadPriKey(assets.open(("ca_private.der")));
-                iaik.x509.X509Certificate cert = CertUtil.loadCert1(assets.open("ca.crt"));
-                char[] password = new char[0];
-                iaik.x509.X509Certificate newCert = SignCert.forgeCert(privateKey, cert, remoteCN, remoteServerCert);
-                KeyStore newKS = KeyStore.getInstance(KeyStore.getDefaultType());
-                newKS.load(null, null);
-                newKS.setKeyEntry(DEFAULT_ALIAS, privateKey, new char[0], new Certificate[]{newCert});
-                keyManagerFactory.init(newKS, password);
-            }else {
-                X509Certificate cert = CertPool.getCert(remoteCN, caConfig);
-                X509Certificate[] keyCertChain = new X509Certificate[]{cert};
-                keyStore.load(null, null);
-                keyStore.setKeyEntry("key", caConfig.getServerPriKey(), null, keyCertChain);
-                keyManagerFactory.init(keyStore, null);
-            }
+            X509Certificate cert = CertPool.getCert(remoteCN, caConfig);
+            X509Certificate[] keyCertChain = new X509Certificate[]{cert};
+            keyStore.load(null, null);
+            keyStore.setKeyEntry("key", caConfig.getServerPriKey(), null, keyCertChain);
+            keyManagerFactory.init(keyStore, null);
             m_sslContext.init(
                     keyManagerFactory.getKeyManagers(),
                     new TrustManager[]{new TrustEveryone()},
@@ -168,7 +153,8 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
         m_serverSocketFactory = m_sslContext.getServerSocketFactory();
     }
 
-    public final ServerSocket createServerSocket(String localHost, int localPort) throws IOException {
+    public final ServerSocket createServerSocket(String localHost, int localPort) throws
+            IOException {
         final SSLServerSocket socket =
                 (SSLServerSocket) m_serverSocketFactory.createServerSocket(
                         localPort, 50, InetAddress.getByName(localHost));
@@ -176,8 +162,8 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
         return socket;
     }
 
-    public final Socket createClientSocket(String remoteHost, int remotePort)
-            throws IOException {
+    @Override
+    public Socket createClientSocket(String remoteHost, int remotePort) throws IOException {
         final SSLSocket socket =
                 (SSLSocket) m_clientSocketFactory.createSocket(
                         remoteHost,

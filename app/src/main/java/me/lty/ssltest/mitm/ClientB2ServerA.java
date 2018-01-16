@@ -4,10 +4,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
+
 /**
  * Describe
  * <p>
- * Created on: 2018/1/15 下午7:32
+ * Created on: 2018/1/15 下午7:16
  * Email: lty81372860@sina.com
  * <p>
  * Copyright (c) 2018 lty. All rights reserved.
@@ -16,9 +18,10 @@ import java.io.PrintWriter;
  * @author lty
  * @version v1.0
  */
-public class ClientB2ServerA extends StreamThread{
+public class ClientB2ServerA extends StreamThread {
+
     @Override
-    public String getTag(){
+    public String getTAG() {
         return ClientB2ServerA.class.getSimpleName();
     }
 

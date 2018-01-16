@@ -1,4 +1,4 @@
-package me.lty.ssltest.mitm;/*
+package me.lty.ssltest.mitm.impl.bootstrap;/*
 Copyright 2007 Srinivas Inguva
 
 Redistribution and use in source and binary forms, with or without modification, are permitted
@@ -24,16 +24,27 @@ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
 
 */
 
+import android.support.annotation.NonNull;
 import android.util.Log;
+import android.util.LruCache;
 
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 import me.lty.ssltest.App;
-import me.lty.ssltest.mitm.engine.HTTPSProxyEngine;
-import me.lty.ssltest.mitm.engine.ProxyEngine;
+import me.lty.ssltest.Config;
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
 import me.lty.ssltest.mitm.factory.MITMPlainSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
+import me.lty.ssltest.mitm.filter.RequestDataFilter;
+import me.lty.ssltest.mitm.filter.ResponseDataFilter;
+
+//import me.lty.ssltest.mitm.engine.HTTPSProxyEngine;
 
 /**
  * Main class for the Man In The Middle SSL proxy.  Delegates the real work
@@ -48,26 +59,29 @@ import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
 public class MITMProxyServer {
 
     private static final String TAG = MITMProxyServer.class.getSimpleName();
+    private final LruCache<String, MITMSSLSocketFactory> mSsfCache;
 
-    public static boolean debugFlag = false;
+    enum Status {READY, ACTIVE, STOPPING;}
 
-    private ProxyEngine m_engine = null;
+    private final int port;
 
-    public MITMProxyServer() {
-        init();
-    }
+    private ProxyDataFilter requestFilter;
+    private ProxyDataFilter responseFilter;
 
-    private void init(){
+    private ServerSocket mServerSocket;
+    private String localHost = Config.PROXY_SERVER_LISTEN_HOST;
+
+    public MITMProxyServer(final int port) {
+        this.port = port;
+
+
         // Default values.
-        ProxyDataFilter requestFilter = new ProxyDataFilter();
-        ProxyDataFilter responseFilter = new ProxyDataFilter();
-        int localPort = 9990;
-        String localHost = "localhost";
+        requestFilter = new RequestDataFilter();
+        responseFilter = new ResponseDataFilter();
 
         String filename = App.context().getFilesDir() + "/out.txt";
 
         try {
-            debugFlag = true;
             PrintWriter pw = new PrintWriter(new FileWriter(filename), true);
             requestFilter.setOutputPrintWriter(pw);
             responseFilter.setOutputPrintWriter(pw);
@@ -79,30 +93,63 @@ public class MITMProxyServer {
 
         startMessage.append("Initializing SSL proxy with the parameters:" +
                                     "\n   Local host:       " + localHost +
-                                    "\n   Local port:       " + localPort);
+                                    "\n   Local port:       " + port);
         startMessage.append("\n   (SSL setup could take a few seconds)");
 
         Log.i(TAG, startMessage.toString());
 
         try {
-            m_engine = new HTTPSProxyEngine(
-                    new MITMPlainSocketFactory(),
-                    new MITMSSLSocketFactory(),
-                    requestFilter,
-                    responseFilter,
+            mServerSocket = new MITMPlainSocketFactory().createServerSocket(
                     localHost,
-                    localPort
+                    port
             );
-
-            Log.i(TAG, "Proxy initialized, listening on port " + localPort);
-        } catch (Exception e) {
+            Log.i(TAG, "Proxy initialized, listening on port " + port);
+        } catch (IOException e) {
             Log.e(TAG, "Could not initialize proxy:");
             e.printStackTrace();
         }
+
+        mSsfCache = new LruCache<>(30);
     }
 
-    public void run() {
-        m_engine.run();
+    public void start() throws IOException {
+        ThreadGroup threadGroup = new ThreadGroup("Proxy-workers");
+        WorkerPoolExecutor workerPoolExecutor = new WorkerPoolExecutor(
+                0,
+                Integer.MAX_VALUE,
+                1L,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>(),
+                new ThreadFactoryImpl(
+                        "Proxy-worker",
+                        threadGroup
+                )
+        );
+
+        do {
+            try {
+                Socket finalAccept = mServerSocket.accept();
+                Worker worker = createWorker(finalAccept);
+                workerPoolExecutor.execute(worker);
+            } catch (Exception e) {
+                Log.e(TAG, "Could not initialize proxy:");
+                e.printStackTrace();
+            }
+        } while (!mServerSocket.isClosed());
+
         Log.i(TAG, "Engine exited");
+    }
+
+    @NonNull
+    private Worker createWorker(Socket finalAccept) throws Exception {
+        return new Worker(
+                finalAccept,
+                new MITMSSLSocketFactory(),
+                requestFilter,
+                responseFilter,
+                localHost,
+                this.port,
+                mSsfCache
+        );
     }
 }
