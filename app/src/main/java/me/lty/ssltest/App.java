@@ -1,17 +1,8 @@
 package me.lty.ssltest;
 
-import android.app.ActivityManager;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.os.StrictMode;
 import android.support.multidex.MultiDex;
 import android.support.multidex.MultiDexApplication;
-import android.util.Log;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Describe

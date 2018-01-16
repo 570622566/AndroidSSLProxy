@@ -24,6 +24,7 @@ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
 
 */
 
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.LruCache;
 
@@ -32,16 +33,15 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import me.lty.ssltest.App;
 import me.lty.ssltest.mitm.ProxyDataFilter;
-import me.lty.ssltest.mitm.engine.CopyHTTPSProxyEngine;
-//import me.lty.ssltest.mitm.engine.HTTPSProxyEngine;
 import me.lty.ssltest.mitm.factory.MITMPlainSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
+
+//import me.lty.ssltest.mitm.engine.HTTPSProxyEngine;
 
 /**
  * Main class for the Man In The Middle SSL proxy.  Delegates the real work
@@ -126,25 +126,7 @@ public class MITMProxyServer {
         do {
             try {
                 Socket finalAccept = mServerSocket.accept();
-                //CopyHTTPSProxyEngine engine = new CopyHTTPSProxyEngine(
-                //        finalAccept,
-                //        new MITMSSLSocketFactory(),
-                //        requestFilter,
-                //        responseFilter,
-                //        localHost,
-                //        this.port,
-                //        mSsfCache
-                //);
-                //engine.run();
-                Worker worker = new Worker(
-                        finalAccept,
-                        new MITMSSLSocketFactory(),
-                        requestFilter,
-                        responseFilter,
-                        localHost,
-                        this.port,
-                        mSsfCache
-                );
+                Worker worker = createWorker(finalAccept);
                 workerPoolExecutor.execute(worker);
             } catch (Exception e) {
                 Log.e(TAG, "Could not initialize proxy:");
@@ -153,5 +135,18 @@ public class MITMProxyServer {
         } while (!mServerSocket.isClosed());
 
         Log.i(TAG, "Engine exited");
+    }
+
+    @NonNull
+    private Worker createWorker(Socket finalAccept) throws Exception {
+        return new Worker(
+                finalAccept,
+                new MITMSSLSocketFactory(),
+                requestFilter,
+                responseFilter,
+                localHost,
+                this.port,
+                mSsfCache
+        );
     }
 }

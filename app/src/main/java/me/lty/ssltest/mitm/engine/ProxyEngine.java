@@ -31,14 +31,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 import me.lty.ssltest.mitm.ClientB2ServerA;
 import me.lty.ssltest.mitm.ConnectionDetails;
 import me.lty.ssltest.mitm.ProxyDataFilter;
 import me.lty.ssltest.mitm.ServerA2ClientB;
-import me.lty.ssltest.mitm.StreamThread;
 import me.lty.ssltest.mitm.factory.MITMSocketFactory;
 
 

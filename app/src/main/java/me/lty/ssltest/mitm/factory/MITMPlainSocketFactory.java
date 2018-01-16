@@ -31,8 +31,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import javax.net.ssl.HandshakeCompletedListener;
-
 /**
  * MITMPlainSocketFactory is used to create plaintext non-SSL sockets.
  */

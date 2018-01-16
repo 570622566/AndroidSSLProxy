@@ -37,15 +37,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.KeyPair;
 import java.security.KeyStore;
-import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
-import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
@@ -66,11 +63,10 @@ import me.lty.ssltest.mitm.tool.CertUtil;
  * allow creation of factories with custom parameters.
  */
 public final class MITMSSLSocketFactory implements MITMSocketFactory {
+
     private ServerSocketFactory m_serverSocketFactory;
     private SocketFactory m_clientSocketFactory;
     private SSLContext m_sslContext;
-
-    public KeyStore ks = null;
 
     private CAConfig caConfig;
 

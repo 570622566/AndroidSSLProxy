@@ -164,18 +164,6 @@ public class CertUtil {
     /**
      * 读取ssl证书使用者信息
      */
-    //public static String getSubject(InputStream inputStream) throws Exception {
-    //    X509Certificate certificate = loadCert(inputStream);
-    //    //读出来顺序是反的需要反转下
-    //    List<String> tempList = Arrays.asList(certificate.getIssuerDN().toString().split(", "));
-    //    return IntStream.rangeClosed(0, tempList.size() - 1)
-    //                    .mapToObj(i -> tempList.get(tempList.size() - i - 1))
-    //                    .collect(Collectors.joining(", "));
-    //}
-
-    /**
-     * 读取ssl证书使用者信息
-     */
     public static String getSubject(X509Certificate certificate) throws Exception {
         //读出来顺序是反的需要反转下
         List<String> tempList = Arrays.asList(certificate.getIssuerDN().toString().split(", "));

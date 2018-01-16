@@ -1,7 +1,5 @@
 package me.lty.ssltest.mitm.impl.bootstrap;
 
-import android.support.annotation.NonNull;
-
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
