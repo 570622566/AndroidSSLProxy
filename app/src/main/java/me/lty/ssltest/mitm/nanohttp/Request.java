@@ -2,7 +2,6 @@ package me.lty.ssltest.mitm.nanohttp;
 
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
-import android.util.SparseArray;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -86,7 +85,7 @@ public class Request extends IHTTPSession {
 
     private String requestBody;
 
-    public Request(byte[] buffer, int bytesRead) throws ResponseException {
+    public Request(byte[] buffer, int bytesRead) throws Exception {
         this.rlen = this.splitbyte = findHeadEnd(buffer, bytesRead);
 
         this.parms = new ArrayMap<>();
@@ -101,10 +100,8 @@ public class Request extends IHTTPSession {
 
         this.method = Method.lookup(pre.get("method"));
         if (this.method == null) {
-            throw new ResponseException(
-                    Response.Status.BAD_REQUEST,
-                    "BAD REQUEST: Syntax error. HTTP verb " + pre.get("method") + " unhandled."
-            );
+            throw new Exception("BAD REQUEST: Syntax error. HTTP verb " + pre.get("method") + " " +
+                                        "unhandled.");
         }
 
         this.uri = pre.get("uri");
@@ -130,7 +127,7 @@ public class Request extends IHTTPSession {
             if (uncompressBody != null) {
                 try {
                     requestBody = new String(uncompressBody, 0, uncompressBody.length, "UTF-8");
-                    Log.wtf("Request",requestBody);
+                    Log.wtf("Request", requestBody);
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -208,7 +205,7 @@ public class Request extends IHTTPSession {
      * Decodes the sent headers and loads the data into Key/value pairs
      */
     private void decodeHeader(BufferedReader in, ArrayMap<String, String> pre, ArrayMap<String,
-            List<String>> parms, ArrayMap<String, String> headers) throws ResponseException {
+            List<String>> parms, ArrayMap<String, String> headers) throws Exception {
         try {
             // Read the request line
             String inLine = in.readLine();
@@ -218,8 +215,7 @@ public class Request extends IHTTPSession {
 
             StringTokenizer st = new StringTokenizer(inLine);
             if (!st.hasMoreTokens()) {
-                throw new ResponseException(
-                        Response.Status.BAD_REQUEST,
+                throw new Exception(
                         "BAD REQUEST: Syntax error. Usage: GET /example/file.html"
                 );
             }
@@ -227,8 +223,7 @@ public class Request extends IHTTPSession {
             pre.put("method", st.nextToken());
 
             if (!st.hasMoreTokens()) {
-                throw new ResponseException(
-                        Response.Status.BAD_REQUEST,
+                throw new Exception(
                         "BAD REQUEST: Missing URI. Usage: GET /example/file.html"
                 );
             }
@@ -268,8 +263,7 @@ public class Request extends IHTTPSession {
 
             pre.put("uri", uri);
         } catch (IOException ioe) {
-            throw new ResponseException(
-                    Response.Status.INTERNAL_ERROR,
+            throw new Exception(
                     "SERVER INTERNAL ERROR: IOException: " + ioe.getMessage(),
                     ioe
             );
@@ -314,9 +308,9 @@ public class Request extends IHTTPSession {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append(method.name() + " "+uri+" "+protocolVersion+"\r\n");
-        for (String key:headers.keySet()){
-            sb.append(headers.get(key)+"\r\n");
+        sb.append(method.name() + " " + uri + " " + protocolVersion + "\r\n");
+        for (String key : headers.keySet()) {
+            sb.append(headers.get(key) + "\r\n");
         }
         sb.append("\r\n");
         return sb.toString();

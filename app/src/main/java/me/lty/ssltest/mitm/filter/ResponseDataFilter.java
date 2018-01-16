@@ -1,12 +1,8 @@
 package me.lty.ssltest.mitm.filter;
 
-import android.util.Log;
-
 import java.io.IOException;
 
 import me.lty.ssltest.mitm.ConnectionDetails;
-import me.lty.ssltest.mitm.nanohttp.Request;
-import me.lty.ssltest.mitm.nanohttp.Response;
 
 /**
  * Describe
