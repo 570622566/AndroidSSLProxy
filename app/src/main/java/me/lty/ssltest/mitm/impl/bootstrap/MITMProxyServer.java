@@ -74,7 +74,6 @@ public class MITMProxyServer {
     public MITMProxyServer(final int port) {
         this.port = port;
 
-
         // Default values.
         requestFilter = new RequestDataFilter();
         responseFilter = new ResponseDataFilter();

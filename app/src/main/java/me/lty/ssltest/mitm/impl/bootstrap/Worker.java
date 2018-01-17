@@ -1,5 +1,6 @@
 package me.lty.ssltest.mitm.impl.bootstrap;
 
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.LruCache;
 
@@ -15,15 +16,14 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLSocket;
 
 import me.lty.ssltest.mitm.ClientAOutCopyStreamRunnable;
 import me.lty.ssltest.mitm.ConnectionDetails;
 import me.lty.ssltest.mitm.CopyStreamRunnable;
-import me.lty.ssltest.mitm.filter.ProxyDataFilter;
-import me.lty.ssltest.mitm.engine.ProxyEngine;
+import me.lty.ssltest.mitm.SessionDataThread;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSocketFactory;
+import me.lty.ssltest.mitm.filter.ProxyDataFilter;
 
 /**
  * Describe
@@ -69,16 +69,20 @@ public class Worker implements Runnable {
 
     private final Pattern m_httpsConnectPattern;
 
-    private final InnerProxySSLEngine m_proxySSLEngine;
-
     private final Socket localSocket;
+
+    private SSLServerSocket mProxySSLServer;
 
     public final MITMSocketFactory m_socketFactory;
     private final ProxyDataFilter m_requestFilter;
     private final ProxyDataFilter m_responseFilter;
     private final ConnectionDetails m_connectionDetails;
 
+    private SessionDataThread mSessionDataThread;
+
     private final PrintWriter m_outputWriter;
+
+    private final LruCache<String, MITMSSLSocketFactory> mSsfCache;
 
     public Worker(Socket acceptSocket,
                   MITMSSLSocketFactory sslSocketFactory,
@@ -99,6 +103,7 @@ public class Worker implements Runnable {
 
         //Plaintext Socket with client (i.e. browser)
         localSocket = acceptSocket;
+        mSsfCache = ssfCache;
 
         m_httpsConnectPattern =
                 Pattern.compile(
@@ -116,12 +121,8 @@ public class Worker implements Runnable {
         // connection). The engine handles multiple connections by
         // spawning multiple thread pairs.
 
-        assert sslSocketFactory != null;
-        m_proxySSLEngine = new InnerProxySSLEngine(
-                sslSocketFactory,
-                requestFilter,
-                responseFilter,
-                ssfCache
+        mSessionDataThread = new SessionDataThread(
+                getProxySSLServer()
         );
     }
 
@@ -173,36 +174,31 @@ public class Worker implements Runnable {
                 m_tempRemoteHost = remoteHost;
                 m_tempRemotePort = remotePort;
 
-                SSLSocket remoteSocket;
-                try {
                     //Lookup the "common name" field of the certificate from the remote server:
-                    remoteSocket = (SSLSocket)
-                            m_proxySSLEngine.getSSLSocketFactory()
-                                            .createClientSocket(remoteHost, remotePort);
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
+                    //remoteSocket = (SSLSocket)
+                    //        m_proxySSLEngine.getSSLSocketFactory()
+                    //                        .createClientSocket(remoteHost, remotePort);
+
                     // Try to be nice and send a reasonable error message to client
-                    sendClientResponse(
-                            localSocket.getOutputStream(),
-                            "504 Gateway Timeout",
-                            remoteHost,
-                            remotePort
-                    );
-                    return;
-                }
-                Log.d(TAG, "[HTTPSProxyEngine] Remote Server Cert CN= " + remoteHost);
+                    //sendClientResponse(
+                    //        localSocket.getOutputStream(),
+                    //        "504 Gateway Timeout",
+                    //        remoteHost,
+                    //        remotePort
+                    //);
+                Log.d(TAG, "Remote Server Cert CN= " + remoteHost);
                 //We've already opened the socket, so might as well keep using it:
-                m_proxySSLEngine.setRemoteSocket(remoteSocket);
+                //m_proxySSLEngine.setRemoteSocket(remoteSocket);
 
                 //This is a CRUCIAL step:  we dynamically generate a new cert, based
                 // on the remote server's CN, and return a reference to the internal
                 // server socket that will make use of it.
-                ServerSocket localProxy = m_proxySSLEngine.createServerSocket(remoteHost);
+                ServerSocket localProxy = createProxySSLServer(remoteHost);
 
                 //Kick off a new thread to send/recv data to/from the remote server.
                 // Remote server's response data is made available via an internal
                 // SSLServerSocket.  All this work is handled by the m_proxySSLEngine:
-                new Thread(m_proxySSLEngine, "HTTPS proxy SSL engine").start();
+                new Thread(mSessionDataThread, "HTTPS proxy SSL engine").start();
 
                 try {
                     Thread.sleep(10);
@@ -259,6 +255,33 @@ public class Worker implements Runnable {
         }
     }
 
+    public final ServerSocket createProxySSLServer(String realServerCN) throws Exception {
+        if (TextUtils.isEmpty(realServerCN)){
+            return null;
+        }
+        MITMSSLSocketFactory ssf = null;
+
+        if (mSsfCache.get(realServerCN) == null) {
+            //Instantiate a NEW SSLSocketFactory with a cert that's based on the remote
+            // server's Common Name
+            System.out.println("Creating a new certificate for " + realServerCN);
+            ssf = new MITMSSLSocketFactory(realServerCN);
+            mSsfCache.put(realServerCN, ssf);
+        } else {
+            System.out.println("Found cached certificate for " + realServerCN);
+            ssf = mSsfCache.get(realServerCN);
+        }
+        mProxySSLServer = (SSLServerSocket) ssf.createServerSocket(
+                m_connectionDetails.getLocalHost(),
+                0
+        );
+        return mProxySSLServer;
+    }
+
+    public SSLServerSocket getProxySSLServer() {
+        return mProxySSLServer;
+    }
+
     private void sendClientResponse(OutputStream out, String msg, String remoteHost, int
             remotePort) throws IOException {
         final StringBuffer response = new StringBuffer();
@@ -269,96 +292,6 @@ public class Worker implements Runnable {
         response.append("\r\n");
         out.write(response.toString().getBytes());
         out.flush();
-    }
-
-    /*
-     * Used to funnel data between a client (e.g. a web browser) and a
-     * remote SSLServer, that the client is making a request to.
-     *
-     */
-    private class InnerProxySSLEngine extends ProxyEngine {
-        Socket remoteSocket = null;
-        int timeout = 0;
-
-        SSLServerSocket m_sslServerSocketA;
-        private final LruCache<String, MITMSSLSocketFactory> mSsfCache;
-
-        /*
-         * NOTE: that port number 0, used below indicates a system-allocated,
-         * dynamic port number.
-         */
-        InnerProxySSLEngine(MITMSSLSocketFactory socketFactory,
-                            ProxyDataFilter requestFilter,
-                            ProxyDataFilter responseFilter,
-                            LruCache<String, MITMSSLSocketFactory> ssfCache)
-                throws IOException {
-            super(
-                    socketFactory,
-                    requestFilter,
-                    responseFilter,
-                    new ConnectionDetails(Worker.this.m_connectionDetails.getLocalHost(),
-                                          0, "", -1, true
-                    )
-            );
-
-            this.mSsfCache = ssfCache;
-        }
-
-        public final void setRemoteSocket(Socket s) {
-            this.remoteSocket = s;
-        }
-
-        public final ServerSocket createServerSocket(String remoteServerCN) throws Exception {
-            assert remoteServerCN != null;
-
-            MITMSSLSocketFactory ssf = null;
-
-            if (mSsfCache.get(remoteServerCN) == null) {
-                //Instantiate a NEW SSLSocketFactory with a cert that's based on the remote
-                // server's Common Name
-                System.out.println("[HTTPSProxyEngine] Creating a new certificate for " +
-                                           remoteServerCN);
-                ssf = new MITMSSLSocketFactory(remoteServerCN);
-                mSsfCache.put(remoteServerCN, ssf);
-            } else {
-                System.out.println("[HTTPSProxyEngine] Found cached certificate for " +
-                                           remoteServerCN);
-                ssf = mSsfCache.get(remoteServerCN);
-            }
-            m_sslServerSocketA = (SSLServerSocket) ssf.createServerSocket(
-                    getConnectionDetails().getLocalHost(),
-                    0
-            );
-            return m_sslServerSocketA;
-        }
-
-        public SSLServerSocket getSSLServerSocketA() {
-            return m_sslServerSocketA;
-        }
-
-        /*
-         * localSocket.get[In|Out]putStream() is data that's (indirectly)
-         * being read from / written to the client.
-         *
-         * m_tempRemoteHost is the remote SSL Server.
-         */
-        @Override
-        public void run() {
-            try {
-                final Socket localSocket = this.getSSLServerSocketA().accept();
-
-                Log.d(TAG, "[HTTPSProxyEngine] New proxy proxy connection to " +
-                        m_tempRemoteHost + ":" + m_tempRemotePort);
-
-                this.launchThreadPair(localSocket, remoteSocket,
-                                      localSocket.getInputStream(),
-                                      localSocket.getOutputStream(),
-                                      m_tempRemoteHost, m_tempRemotePort
-                );
-            } catch (IOException e) {
-                e.printStackTrace(System.err);
-            }
-        }
     }
 
 }
