@@ -29,7 +29,6 @@ import android.util.Log;
 import java.io.PrintWriter;
 
 import me.lty.ssltest.mitm.ConnectionDetails;
-import me.lty.ssltest.mitm.nanohttp.Request;
 
 /*
  * This class is used to record data that passes back and forth over a TCP

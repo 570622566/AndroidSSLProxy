@@ -8,6 +8,8 @@ import java.net.Socket;
 
 import javax.net.ssl.SSLServerSocket;
 
+import me.lty.ssltest.mitm.nanohttp.MyRequest;
+
 /**
  * Describe
  * <p>
@@ -37,11 +39,23 @@ public class SessionDataThread implements Runnable {
 
             //解析请求 --- 拦截 --- 发送请求
             InputStream inputStream = localSocket.getInputStream();
-            byte[] buffer = new byte[10240];
-            int rlen = 0;
-            while ((rlen = inputStream.read(buffer)) >= 0) {
 
+            while (true){
+                byte[] buffer = new byte[10240];
+                int rlen = inputStream.read(buffer,0,10240);
+                if (rlen == -1){
+                    break;
+                }
+                try {
+                    MyRequest myRequest = new MyRequest(buffer, rlen);
+                    Log.d("Http Session", myRequest.toString());
+
+                    MyResponse response = OkHttpUtil.getInstance().doRequest(myRequest);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
+
         } catch (IOException e) {
             e.printStackTrace(System.err);
         }

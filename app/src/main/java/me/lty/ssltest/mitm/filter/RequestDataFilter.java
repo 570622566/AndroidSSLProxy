@@ -5,7 +5,7 @@ import android.util.Log;
 import java.io.IOException;
 
 import me.lty.ssltest.mitm.ConnectionDetails;
-import me.lty.ssltest.mitm.nanohttp.Request;
+import me.lty.ssltest.mitm.nanohttp.MyRequest;
 
 /**
  * Describe
@@ -25,8 +25,8 @@ public class RequestDataFilter extends ProxyDataFilter{
             bytesRead) throws IOException {
         super.handle(tag, connectionDetails, buffer, bytesRead);
         try {
-            Request request = new Request(buffer, bytesRead);
-            Log.wtf("Http Session", request.toString());
+            MyRequest myRequest = new MyRequest(buffer, bytesRead);
+            Log.wtf("Http Session", myRequest.toString());
         }catch (Exception e){
             e.printStackTrace();
         }

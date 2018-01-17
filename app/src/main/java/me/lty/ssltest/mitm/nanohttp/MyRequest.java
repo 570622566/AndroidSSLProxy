@@ -29,12 +29,12 @@ import java.util.zip.InflaterInputStream;
  * @author lty
  * @version v1.0
  */
-public class Request extends IHTTPSession {
+public class MyRequest extends IHTTPSession {
 
-    private static final String TAG = Request.class.getSimpleName();
+    private static final String TAG = MyRequest.class.getSimpleName();
 
     /**
-     * HTTP Request methods, with the ability to decode a <code>String</code>
+     * HTTP MyRequest methods, with the ability to decode a <code>String</code>
      * back to its enum value.
      */
     public enum Method {
@@ -75,17 +75,17 @@ public class Request extends IHTTPSession {
     private int splitbyte;
     private int rlen;
 
-    private final ArrayMap<String, List<String>> parms;
-    private final ArrayMap<String, String> headers;
-    private final Method method;
-    private final String uri;
-    private final CookieHandler cookies;
-    private String protocolVersion;
-    private final boolean keepAlive;
+    public final ArrayMap<String, List<String>> parms;
+    public final ArrayMap<String, String> headers;
+    public final Method method;
+    public final String uri;
+    public final CookieHandler cookies;
+    public String protocolVersion;
+    public final boolean keepAlive;
 
     private String requestBody;
 
-    public Request(byte[] buffer, int bytesRead) throws Exception {
+    public MyRequest(byte[] buffer, int bytesRead) throws Exception {
         this.rlen = this.splitbyte = findHeadEnd(buffer, bytesRead);
 
         this.parms = new ArrayMap<>();
@@ -107,7 +107,6 @@ public class Request extends IHTTPSession {
         this.uri = pre.get("uri");
 
         this.cookies = new CookieHandler(this.headers);
-
         String connection = this.headers.get("connection");
         keepAlive = "HTTP/1.1".equals(protocolVersion) && (connection == null || !connection
                 .matches("(?i).*close.*"));
@@ -127,7 +126,7 @@ public class Request extends IHTTPSession {
             if (uncompressBody != null) {
                 try {
                     requestBody = new String(uncompressBody, 0, uncompressBody.length, "UTF-8");
-                    Log.wtf("Request", requestBody);
+                    Log.wtf("MyRequest", requestBody);
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -175,9 +174,9 @@ public class Request extends IHTTPSession {
      * Deduce body length in bytes. Either from "content-length" header or
      * read bytes.
      */
-    public long getBodySize() {
+    public int getBodySize() {
         if (this.headers.containsKey("content-length")) {
-            return Long.parseLong(this.headers.get("content-length"));
+            return Integer.parseInt(this.headers.get("content-length"));
         } else if (this.splitbyte < this.rlen) {
             return this.rlen - this.splitbyte;
         }
