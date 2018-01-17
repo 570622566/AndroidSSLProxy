@@ -3,6 +3,7 @@ package me.lty.ssltest.mitm;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 
 import javax.net.ssl.SSLServerSocket;
@@ -19,7 +20,7 @@ import javax.net.ssl.SSLServerSocket;
  * @author lty
  * @version v1.0
  */
-public class SessionDataThread implements Runnable{
+public class SessionDataThread implements Runnable {
 
     private static final String TAG = SessionDataThread.class.getSimpleName();
 
@@ -35,11 +36,12 @@ public class SessionDataThread implements Runnable{
             final Socket localSocket = this.mProxySSLServer.accept();
 
             //解析请求 --- 拦截 --- 发送请求
-            //this.launchThreadPair(localSocket, remoteSocket,
-            //                      localSocket.getInputStream(),
-            //                      localSocket.getOutputStream(),
-            //                      m_tempRemoteHost, m_tempRemotePort
-            //);
+            InputStream inputStream = localSocket.getInputStream();
+            byte[] buffer = new byte[10240];
+            int rlen = 0;
+            while ((rlen = inputStream.read(buffer)) >= 0) {
+
+            }
         } catch (IOException e) {
             e.printStackTrace(System.err);
         }
