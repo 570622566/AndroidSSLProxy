@@ -168,11 +168,7 @@ public class Worker implements Runnable {
 
                 final String target = remoteHost + ":" + remotePort;
 
-                Log.d(
-                        TAG,
-                        "[HTTPSProxyEngine] Establishing a new HTTPS proxy connection to " +
-                                "" + target
-                );
+                Log.d(TAG, "Establishing a new HTTPS proxy connection to" + target);
 
                 m_tempRemoteHost = remoteHost;
                 m_tempRemotePort = remotePort;
