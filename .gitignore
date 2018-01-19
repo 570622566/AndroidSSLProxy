@@ -31,7 +31,6 @@ hs_err_pid*
 *.dex
 
 # Java class files
-*.class
 
 # Generated files
 bin/
@@ -61,8 +60,6 @@ captures/
 appengine-generated/
 
 # ---> Scala
-*.class
-*.log
 
 # sbt specific
 .cache
@@ -113,8 +110,8 @@ rerun.txt
 pickle-email-*.html
 
 # TODO Comment out these rules if you are OK with secrets being uploaded to the repo
-config/initializers/secret_token.rb
-config/secrets.yml
+socketConfig/initializers/secret_token.rb
+socketConfig/secrets.yml
 
 ## Environment normalisation:
 /.bundle

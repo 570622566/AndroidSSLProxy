@@ -28,21 +28,31 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.LruCache;
 
-import java.io.FileWriter;
+import org.apache.httpcore.ConnectionReuseStrategy;
+import org.apache.httpcore.ExceptionLogger;
+import org.apache.httpcore.HttpResponseFactory;
+import org.apache.httpcore.config.SocketConfig;
+import org.apache.httpcore.impl.DefaultBHttpServerConnectionFactory;
+import org.apache.httpcore.impl.DefaultConnectionReuseStrategy;
+import org.apache.httpcore.impl.DefaultHttpResponseFactory;
+import org.apache.httpcore.protocol.HttpProcessor;
+import org.apache.httpcore.protocol.HttpProcessorBuilder;
+import org.apache.httpcore.protocol.ResponseConnControl;
+import org.apache.httpcore.protocol.ResponseContent;
+import org.apache.httpcore.protocol.ResponseDate;
+import org.apache.httpcore.protocol.ResponseServer;
+
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
-import me.lty.ssltest.App;
 import me.lty.ssltest.Config;
-import me.lty.ssltest.mitm.filter.ProxyDataFilter;
-import me.lty.ssltest.mitm.factory.MITMPlainSocketFactory;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
-import me.lty.ssltest.mitm.filter.RequestDataFilter;
-import me.lty.ssltest.mitm.filter.ResponseDataFilter;
+import me.lty.ssltest.mitm.flow.DefaultDataFlow;
+import me.lty.ssltest.mitm.httpcore.HttpService;
+import me.lty.ssltest.mitm.httpcore.WorkerPoolExecutor;
 
 //import me.lty.ssltest.mitm.engine.HTTPSProxyEngine;
 
@@ -59,61 +69,74 @@ import me.lty.ssltest.mitm.filter.ResponseDataFilter;
 public class MITMProxyServer {
 
     private static final String TAG = MITMProxyServer.class.getSimpleName();
-    private final LruCache<String, MITMSSLSocketFactory> mSsfCache;
 
-    enum Status {READY, ACTIVE, STOPPING;}
-
+    private final String localHost = Config.PROXY_SERVER_LISTEN_HOST;
     private final int port;
+    private final LruCache<String, MITMSSLSocketFactory> sslSocketFactoryCache;
 
-    private ProxyDataFilter requestFilter;
-    private ProxyDataFilter responseFilter;
+    private ServerSocket serverSocket;
+    private final HttpService httpService;
+    private final SocketConfig socketConfig;
+    private final ExceptionLogger exceptionLogger;
+    private final WorkerPoolExecutor workerExecutorService;
+    private final WorkerPoolExecutor sslRequestExecutor;
+    private final DefaultBHttpServerConnectionFactory connectionFactory;
 
-    private ServerSocket mServerSocket;
-    private String localHost = Config.PROXY_SERVER_LISTEN_HOST;
+    public MITMProxyServer(Builder builder) {
+        this.port = builder.port;
+        sslSocketFactoryCache = builder.sslFactoryCache;
 
-    public MITMProxyServer(final int port) {
-        this.port = port;
+        Log.i(TAG, "Initializing SSL proxy with the parameters:" +
+                "\n   Local host:       " + localHost +
+                "\n   Local port:       " + port +
+                "\n   (SSL setup could take a few seconds)");
 
-        // Default values.
-        requestFilter = new RequestDataFilter();
-        responseFilter = new ResponseDataFilter();
+        Log.i(TAG, "Proxy initialized, listening on port " + port);
+        Log.e(TAG, "Could not initialize proxy:");
 
-        String filename = App.context().getFilesDir() + "/out.txt";
+        final HttpProcessorBuilder b = HttpProcessorBuilder.create();
+        String serverInfoCopy = "Apache-HttpCore/1.1";
+        b.addAll(
+                new ResponseDate(),
+                new ResponseServer(serverInfoCopy),
+                new ResponseContent(true),
+                new ResponseConnControl()
+        );
+        HttpProcessor httpProcessorCopy = b.build();
+        ConnectionReuseStrategy connStrategyCopy = DefaultConnectionReuseStrategy.INSTANCE;
+        HttpResponseFactory responseFactoryCopy = DefaultHttpResponseFactory.INSTANCE;
+        DefaultDataFlow proxyDataFlow = new DefaultDataFlow();
+        httpService = new HttpService(
+                httpProcessorCopy, connStrategyCopy, responseFactoryCopy, proxyDataFlow);
 
-        try {
-            PrintWriter pw = new PrintWriter(new FileWriter(filename), true);
-            requestFilter.setOutputPrintWriter(pw);
-            responseFilter.setOutputPrintWriter(pw);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        this.connectionFactory = DefaultBHttpServerConnectionFactory.INSTANCE;
 
-        final StringBuffer startMessage = new StringBuffer();
+        this.socketConfig = SocketConfig.custom()
+                                        .setSoKeepAlive(true)
+                                        .setSoReuseAddress(false)
+                                        .setSoTimeout(builder.timeOut)
+                                        .setTcpNoDelay(false)
+                                        .build();
+        exceptionLogger = builder.exceptionLogger;
 
-        startMessage.append("Initializing SSL proxy with the parameters:" +
-                                    "\n   Local host:       " + localHost +
-                                    "\n   Local port:       " + port);
-        startMessage.append("\n   (SSL setup could take a few seconds)");
-
-        Log.i(TAG, startMessage.toString());
-
-        try {
-            mServerSocket = new MITMPlainSocketFactory().createServerSocket(
-                    localHost,
-                    port
-            );
-            Log.i(TAG, "Proxy initialized, listening on port " + port);
-        } catch (IOException e) {
-            Log.e(TAG, "Could not initialize proxy:");
-            e.printStackTrace();
-        }
-
-        mSsfCache = new LruCache<>(30);
+        ThreadGroup workerThreads = new ThreadGroup("HTTP-workers");
+        workerExecutorService = new WorkerPoolExecutor(
+                0, Integer.MAX_VALUE, 1L, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>(),
+                new ThreadFactoryImpl("HTTP-worker", workerThreads)
+        );
+        sslRequestExecutor = new WorkerPoolExecutor(
+                0, Integer.MAX_VALUE, 1L, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>(),
+                new ThreadFactoryImpl("HTTPS-worker", workerThreads)
+        );
     }
 
     public void start() throws IOException {
+        this.serverSocket = new ServerSocket(this.port, 50);
+
         ThreadGroup threadGroup = new ThreadGroup("Proxy-workers");
-        WorkerPoolExecutor workerPoolExecutor = new WorkerPoolExecutor(
+        ProxyWorkerPoolExecutor proxyWorkerPoolExecutor = new ProxyWorkerPoolExecutor(
                 0,
                 Integer.MAX_VALUE,
                 1L,
@@ -127,28 +150,67 @@ public class MITMProxyServer {
 
         do {
             try {
-                Socket finalAccept = mServerSocket.accept();
-                Worker worker = createWorker(finalAccept);
-                workerPoolExecutor.execute(worker);
+                Socket finalAccept = this.serverSocket.accept();
+                ProxyWorker proxyWorker = createWorker(finalAccept);
+                proxyWorkerPoolExecutor.execute(proxyWorker);
             } catch (Exception e) {
                 Log.e(TAG, "Could not initialize proxy:");
                 e.printStackTrace();
             }
-        } while (!mServerSocket.isClosed());
+        } while (!this.serverSocket.isClosed());
 
         Log.i(TAG, "Engine exited");
     }
 
     @NonNull
-    private Worker createWorker(Socket finalAccept) throws Exception {
-        return new Worker(
+    private ProxyWorker createWorker(Socket finalAccept) throws Exception {
+        return new ProxyWorker(
                 finalAccept,
-                new MITMSSLSocketFactory(),
-                requestFilter,
-                responseFilter,
-                localHost,
-                this.port,
-                mSsfCache
+                this.socketConfig,
+                this.httpService,
+                this.connectionFactory,
+                this.exceptionLogger,
+                this.workerExecutorService,
+                this.sslRequestExecutor,
+                this.sslSocketFactoryCache
         );
+    }
+
+    public static class Builder {
+
+        private int port;
+        private int timeOut;
+        private ExceptionLogger exceptionLogger;
+
+        private LruCache<String, MITMSSLSocketFactory> sslFactoryCache;
+
+        public Builder() {
+
+        }
+
+        public Builder setPort(int port) {
+            this.port = port;
+            return this;
+        }
+
+        public Builder setTimeOut(int timeOut,TimeUnit timeUnit) {
+            long timeoutMs = timeUnit.toMillis((long)timeOut);
+            this.timeOut = (int)Math.min(timeoutMs, 2147483647L);
+            return this;
+        }
+
+        public Builder setExceptionLogger(ExceptionLogger exceptionLogger) {
+            this.exceptionLogger = exceptionLogger;
+            return this;
+        }
+
+        public Builder setSslFactoryCache(LruCache<String, MITMSSLSocketFactory> sslFactoryCache) {
+            this.sslFactoryCache = sslFactoryCache;
+            return this;
+        }
+
+        public MITMProxyServer build() {
+            return new MITMProxyServer(this);
+        }
     }
 }

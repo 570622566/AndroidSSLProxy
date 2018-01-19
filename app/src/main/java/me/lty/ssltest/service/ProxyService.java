@@ -1,11 +1,25 @@
-package me.lty.ssltest;
+package me.lty.ssltest.service;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.util.LruCache;
 
+import org.apache.httpcore.ExceptionLogger;
+import org.apache.httpcore.config.SocketConfig;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ServerSocketFactory;
+
+import me.lty.ssltest.Config;
+import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
+import me.lty.ssltest.mitm.flow.DefaultDataFlow;
 import me.lty.ssltest.mitm.impl.bootstrap.MITMProxyServer;
 
 /**
@@ -40,7 +54,7 @@ public class ProxyService extends Service {
         Bundle extras = intent.getExtras();
         int listen_port = Config.PROXY_SERVER_LISTEN_PORT;
         if (extras != null) {
-            listen_port = extras.getInt("listen_port");
+            listen_port = extras.getInt("mListenPort");
         }
         thread = new ServerThread(listen_port);
         thread.start();
@@ -55,16 +69,21 @@ public class ProxyService extends Service {
 
     class ServerThread extends Thread {
 
-        private final int listen_port;
+        private final int mListenPort;
 
         public ServerThread(int port) {
-            listen_port = port;
+            mListenPort = port;
         }
 
         @Override
         public void run() {
             try {
-                MITMProxyServer server = new MITMProxyServer(listen_port);
+                MITMProxyServer server = new MITMProxyServer.Builder()
+                        .setPort(mListenPort)
+                        .setTimeOut(10,TimeUnit.SECONDS)
+                        .setSslFactoryCache(new LruCache<String, MITMSSLSocketFactory>(100))
+                        .setExceptionLogger(ExceptionLogger.STD_ERR)
+                        .build();
                 server.start();
             } catch (Exception e) {
                 e.printStackTrace();

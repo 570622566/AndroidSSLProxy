@@ -16,7 +16,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name=".ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -24,9 +24,9 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".SessionDetailActivity" />
+        <activity android:name=".ui.SessionDetailActivity" />
 
-        <service android:name=".ProxyService"/>
+        <service android:name=".service.ProxyService"/>
     </application>
 
 </manifest>

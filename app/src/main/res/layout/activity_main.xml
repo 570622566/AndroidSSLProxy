@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:gravity="center"
     android:layout_height="match_parent"
-    tools:context="me.lty.ssltest.MainActivity">
+    tools:context="me.lty.ssltest.ui.MainActivity">
 
     <TextView
         android:id="@+id/textView"

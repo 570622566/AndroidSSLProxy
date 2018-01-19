@@ -1,4 +1,4 @@
-package me.lty.ssltest;
+package me.lty.ssltest.tool;
 
 import android.content.Context;
 import android.net.ProxyInfo;

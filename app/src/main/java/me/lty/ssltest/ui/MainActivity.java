@@ -1,4 +1,4 @@
-package me.lty.ssltest;
+package me.lty.ssltest.ui;
 
 import android.content.Intent;
 import android.os.Build;
@@ -24,6 +24,10 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ssl.SSLContext;
 
+import me.lty.ssltest.Config;
+import me.lty.ssltest.service.ProxyService;
+import me.lty.ssltest.R;
+import me.lty.ssltest.tool.WifiProxyUtil;
 import me.lty.ssltest.mitm.tool.CertUtil;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {

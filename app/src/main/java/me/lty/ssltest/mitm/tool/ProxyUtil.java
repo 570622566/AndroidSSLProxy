@@ -1,4 +1,4 @@
-package me.lty.ssltest.mitm;
+package me.lty.ssltest.mitm.tool;
 
 import android.util.Log;
 

@@ -27,18 +27,12 @@ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
 
 */
 
-import android.content.res.AssetManager;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.cert.X509Certificate;
 
 import javax.net.ServerSocketFactory;
@@ -50,10 +44,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import me.lty.ssltest.App;
 import me.lty.ssltest.mitm.CAConfig;
-import me.lty.ssltest.mitm.CertPool;
-import me.lty.ssltest.mitm.tool.CertUtil;
+import me.lty.ssltest.mitm.tool.CertPool;
 
 
 /**
@@ -67,8 +59,6 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
     private ServerSocketFactory m_serverSocketFactory;
     private SocketFactory m_clientSocketFactory;
     private SSLContext m_sslContext;
-
-    private CAConfig caConfig;
 
     /*
      *
@@ -86,44 +76,16 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
 
     /**
      * This constructor will create an SSL server socket factory
-     * that is initialized with a fixed CA certificate
-     */
-    public MITMSSLSocketFactory() throws Exception {
-        init(null);
-    }
-
-    /**
-     * This constructor will create an SSL server socket factory
      * that is initialized with a forged server certificate
      * that is issued by the proxy "CA certificate".
      */
-    public MITMSSLSocketFactory(String remoteCN)
+    public MITMSSLSocketFactory(String remoteCN, CAConfig config)
             throws Exception {
-        init(remoteCN);
+        init(remoteCN, config);
     }
 
-    private void init(String remoteCN) throws
+    private void init(String remoteCN, CAConfig config) throws
             Exception {
-        Security.addProvider(new BouncyCastleProvider());
-
-        AssetManager assets = App.context().getAssets();
-        if (caConfig == null) {
-            caConfig = new CAConfig();
-
-            X509Certificate certificate = CertUtil.loadCert(assets.open("ca.crt"));
-            //读取CA证书使用者信息
-            caConfig.setIssuer(CertUtil.getSubject(certificate));
-            //读取CA证书有效时段(server证书有效期超出CA证书的，在手机上会提示证书不安全)
-            caConfig.setCaNotBefore(certificate.getNotBefore());
-            caConfig.setCaNotAfter(certificate.getNotAfter());
-            //CA私钥用于给动态生成的网站SSL证书签证
-            caConfig.setCaPriKey(CertUtil.loadPriKey(assets.open(("ca_private.der"))));
-            //生产一对随机公私钥用于网站SSL证书动态创建
-            KeyPair keyPair = CertUtil.genKeyPair();
-            caConfig.setServerPriKey(keyPair.getPrivate());
-            caConfig.setServerPubKey(keyPair.getPublic());
-        }
-
         m_sslContext = SSLContext.getInstance("TLS");
 
         final KeyManagerFactory keyManagerFactory =
@@ -132,10 +94,10 @@ public final class MITMSSLSocketFactory implements MITMSocketFactory {
         final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 
         if (remoteCN != null) {
-            X509Certificate cert = CertPool.getCert(remoteCN, caConfig);
+            X509Certificate cert = CertPool.getCert(remoteCN, config);
             X509Certificate[] keyCertChain = new X509Certificate[]{cert};
             keyStore.load(null, null);
-            keyStore.setKeyEntry("key", caConfig.getServerPriKey(), null, keyCertChain);
+            keyStore.setKeyEntry("key", config.getServerPriKey(), null, keyCertChain);
             keyManagerFactory.init(keyStore, null);
             m_sslContext.init(
                     keyManagerFactory.getKeyManagers(),

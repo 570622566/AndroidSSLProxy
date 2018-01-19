@@ -1,9 +1,10 @@
-package me.lty.ssltest.mitm;
+package me.lty.ssltest.mitm.tool;
 
 import android.util.LruCache;
 
 import java.security.cert.X509Certificate;
 
+import me.lty.ssltest.mitm.CAConfig;
 import me.lty.ssltest.mitm.tool.CertUtil;
 
 public class CertPool {
