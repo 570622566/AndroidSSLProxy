@@ -45,7 +45,7 @@ public class Worker implements Runnable {
     private final HttpHost targetHost;
     private final ExceptionLogger exceptionLogger;
 
-    private boolean isTLS;
+    private boolean isSecurity;
 
     public Worker(
             final HttpService httpservice,
@@ -59,8 +59,8 @@ public class Worker implements Runnable {
         this.exceptionLogger = exceptionLogger;
     }
 
-    public void setUseSSL(boolean secrecy) {
-        isTLS = secrecy;
+    public void isSecurity(boolean Security) {
+        this.isSecurity = Security;
     }
 
     @Override
@@ -69,7 +69,7 @@ public class Worker implements Runnable {
             final BasicHttpContext localContext = new BasicHttpContext();
             final HttpCoreContext context = HttpCoreContext.adapt(localContext);
             context.setAttribute("targetHost",this.targetHost);
-            context.setAttribute("isTLS",this.isTLS);
+            context.setAttribute("isSecurity",this.isSecurity);
             while (!Thread.interrupted() && this.conn.isOpen()) {
                 this.httpservice.handleRequest(this.conn, context);
                 localContext.clear();

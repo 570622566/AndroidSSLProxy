@@ -41,15 +41,13 @@ public class CopyStreamRunnable implements Runnable {
                 final int bytesRead = m_in.read(buffer, 0, buffer.length);
 
                 if(bytesRead == -1){
+                    Log.e("LLYH","copy stream read end");
                     break;
                 }
 
                 if (bytesRead == 0) {
                     idle++;
                 } else if (bytesRead > 0){
-                    //final String line = new String(buffer, 0, bytesRead, "US-ASCII");
-                    //Log.wtf(TAG,line);
-
                     m_out.write(buffer, 0, bytesRead);
                     idle = 0;
                 }
@@ -60,11 +58,10 @@ public class CopyStreamRunnable implements Runnable {
             }
         } catch (IOException e) {
             // Be silent about IOExceptions ...
-            Log.d(TAG,"Got catch ---  1");
+            Log.d(TAG,"Got catch ---  IOException");
             e.printStackTrace();
         } catch (InterruptedException e) {
-            // ... and InterruptedExceptions.
-            Log.d(TAG,"Got catch ---  1");
+            Log.d(TAG,"Got catch ---  InterruptedException");
             e.printStackTrace();
         }
 

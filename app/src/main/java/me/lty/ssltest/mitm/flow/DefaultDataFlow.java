@@ -1,17 +1,18 @@
 package me.lty.ssltest.mitm.flow;
 
-import org.apache.httpcore.HttpEntityEnclosingRequest;
+import android.util.Log;
+
 import org.apache.httpcore.HttpException;
 import org.apache.httpcore.HttpRequest;
 import org.apache.httpcore.HttpResponse;
 import org.apache.httpcore.HttpStatus;
 import org.apache.httpcore.protocol.HttpContext;
-import org.apache.httpcore.protocol.HttpRequestHandler;
 
 import java.io.IOException;
 
 import me.lty.ssltest.mitm.Firebase;
-import me.lty.ssltest.mitm.httpcore.HttpService;
+import me.lty.ssltest.mitm.FirebaseNIO;
+import me.lty.ssltest.mitm.FirebaseOkHttp;
 
 /**
  * Describe
@@ -38,11 +39,14 @@ public class DefaultDataFlow implements DataFlow {
     }
 
     private HttpResponse doRequest(HttpRequest request, HttpContext context) {
-        return Firebase.getInstance().openFire(request, context);
+        //return Firebase.getInstance().openFire(request, context);
+        //return FirebaseNIO.getInstance().openFire(request, context);
+        return FirebaseOkHttp.getInstance().openFire(request, context);
     }
 
     @Override
     public HttpRequest doBeforeRequestProcess(HttpRequest request) {
+        Log.d("LLYH",request.getRequestLine().getUri());
         return request;
     }
 

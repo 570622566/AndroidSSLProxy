@@ -9,15 +9,16 @@ import org.apache.httpcore.HttpConnectionFactory;
 import org.apache.httpcore.HttpHost;
 import org.apache.httpcore.HttpServerConnection;
 import org.apache.httpcore.config.SocketConfig;
-import org.apache.httpcore.message.BasicHttpRequest;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -27,7 +28,6 @@ import javax.net.ssl.SSLServerSocket;
 import me.lty.ssltest.Config;
 import me.lty.ssltest.mitm.factory.MITMSSLSocketFactory;
 import me.lty.ssltest.mitm.httpcore.HttpService;
-import me.lty.ssltest.mitm.httpcore.Worker;
 import me.lty.ssltest.mitm.httpcore.WorkerPoolExecutor;
 import me.lty.ssltest.mitm.io.CopyStreamRunnable;
 
@@ -55,31 +55,34 @@ public class ProxyWorker implements Runnable {
     private final HttpConnectionFactory<? extends HttpServerConnection> connectionFactory;
     private final ExceptionLogger exceptionLogger;
     private final WorkerPoolExecutor httpworkerExecutor;
-    private final WorkerPoolExecutor sslRequestExecutor;
+    private final WorkerPoolExecutor requestExecutor;
     private final LruCache<String, MITMSSLSocketFactory> sslSocketFactroyCache;
 
     private final Pattern connectPattern;
     private final Pattern otherPattern;
 
-    private SSLServerSocket mProxySSLServer;
+    private SSLServerSocket proxySSLServer;
+    private ServerSocket proxyPlainServer;
 
     public ProxyWorker(Socket acceptSocket,
+                       ServerSocket httpPlainServer,
                        SocketConfig socketConfig,
                        HttpService httpService,
                        HttpConnectionFactory<? extends HttpServerConnection> connectionFactory,
                        ExceptionLogger exceptionLogger,
                        WorkerPoolExecutor httpworkerExecutor,
-                       WorkerPoolExecutor sslRequestExecutor,
+                       WorkerPoolExecutor requestExecutor,
                        LruCache<String, MITMSSLSocketFactory> sslSocketFactroyCache)
             throws IOException, PatternSyntaxException {
 
         this.localSocket = acceptSocket;
+        this.proxyPlainServer = httpPlainServer;
         this.socketConfig = socketConfig;
         this.httpService = httpService;
         this.connectionFactory = connectionFactory;
         this.exceptionLogger = exceptionLogger;
         this.httpworkerExecutor = httpworkerExecutor;
-        this.sslRequestExecutor = sslRequestExecutor;
+        this.requestExecutor = requestExecutor;
         this.sslSocketFactroyCache = sslSocketFactroyCache;
 
         connectPattern =
@@ -117,10 +120,13 @@ public class ProxyWorker implements Runnable {
                     "US-ASCII"
             ) : "";
 
+            Log.d(TAG, line);
+
             final Matcher connectMatcher =
                     connectPattern.matcher(line);
             final Matcher otherMatcher =
                     otherPattern.matcher(line);
+            HttpHost targetHost;
 
             if (connectMatcher.find()) {
                 //then we have a proxy CONNECT message!
@@ -128,9 +134,9 @@ public class ProxyWorker implements Runnable {
                 while (in.read(buffer, 0, in.available()) > 0) {
                 }
 
-                String remoteHost= connectMatcher.group(1);
-                int remotePort= Integer.parseInt(connectMatcher.group(2));
-                HttpHost targetHost= new HttpHost(remoteHost, remotePort);
+                String remoteHost = connectMatcher.group(1);
+                int remotePort = Integer.parseInt(connectMatcher.group(2));
+                targetHost = new HttpHost(remoteHost, remotePort,"https");
                 String target = targetHost.toHostString();
 
                 Log.d(TAG, "Establishing a new HTTPS proxy connection to " + target);
@@ -142,7 +148,7 @@ public class ProxyWorker implements Runnable {
                         localProxy.getLocalPort()
                 );
 
-                HttpsRequestListener httpsRequestListener = new HttpsRequestListener(
+                SecurityRequestListener securityRequestListener = new SecurityRequestListener(
                         this.socketConfig,
                         targetHost,
                         getProxySSLServer(),
@@ -152,7 +158,7 @@ public class ProxyWorker implements Runnable {
                         this.httpworkerExecutor
                 );
 
-                this.sslRequestExecutor.execute(httpsRequestListener);
+                this.requestExecutor.execute(securityRequestListener);
 
                 try {
                     Thread.sleep(15);
@@ -185,13 +191,47 @@ public class ProxyWorker implements Runnable {
                 );
             } else {
                 if (otherMatcher.find()) {
-                    String method = otherMatcher.group(1);
                     String uri = otherMatcher.group(2);
 
-                    BasicHttpRequest request = new BasicHttpRequest(method, uri);
-                    //request.setHeader();
+                    URL url = new URL(uri);
+                    String host = url.getHost();
+                    int port = url.getPort() > 0 ? url.getPort() : url.getDefaultPort();
 
-                    Log.d(TAG, "Establishing a new HTTP proxy connection to " + uri);
+                    Log.d(TAG, "Establishing a new HTTP proxy connection to " + host + ":" + port);
+
+                    targetHost = new HttpHost(host,port,"http");
+
+                    PlainRequestListener plainRequestListener = new PlainRequestListener(
+                            this.socketConfig,
+                            targetHost,
+                            this.proxyPlainServer,
+                            this.httpService,
+                            this.connectionFactory,
+                            this.exceptionLogger,
+                            this.httpworkerExecutor
+                    );
+                    requestExecutor.execute(plainRequestListener);
+
+                    try {
+                        Thread.sleep(15);
+                    } catch (Exception ignore) {
+                    }
+
+                    //创建socket 连接到server 并将请求的信息写入
+                    Socket socket = new Socket(
+                            InetAddress.getLocalHost(),
+                            this.proxyPlainServer.getLocalPort()
+                    );
+                    socket.getOutputStream().write(buffer, 0, bytesRead);
+
+                    new Thread(
+                            new CopyStreamRunnable(
+                                    socket,
+                                    localSocket,
+                                    "Copy to proxy engine for " + uri
+                            ),
+                            "Copy to proxy engine for " + uri
+                    ).start();
                 } else {
                     Log.e(TAG, "Failed to determine proxy destination from message:");
                     Log.e(TAG, line);
@@ -201,7 +241,6 @@ public class ProxyWorker implements Runnable {
                             "localhost",
                             Config.PROXY_SERVER_LISTEN_PORT
                     );
-                    return;
                 }
             }
         } catch (InterruptedIOException e) {
@@ -226,15 +265,15 @@ public class ProxyWorker implements Runnable {
             System.out.println("Found cached certificate for " + realServerCN);
             ssf = sslSocketFactroyCache.get(realServerCN);
         }
-        mProxySSLServer = (SSLServerSocket) ssf.createServerSocket(
+        proxySSLServer = (SSLServerSocket) ssf.createServerSocket(
                 Config.PROXY_SERVER_LISTEN_HOST,
                 0
         );
-        return mProxySSLServer;
+        return proxySSLServer;
     }
 
-    public SSLServerSocket getProxySSLServer() {
-        return mProxySSLServer;
+    private SSLServerSocket getProxySSLServer() {
+        return this.proxySSLServer;
     }
 
     private void sendClientResponse(OutputStream out, String msg, String remoteHost, int

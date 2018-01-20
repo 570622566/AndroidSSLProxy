@@ -56,8 +56,10 @@ public class ProxyService extends Service {
         if (extras != null) {
             listen_port = extras.getInt("mListenPort");
         }
-        thread = new ServerThread(listen_port);
-        thread.start();
+        if (thread == null) {
+            thread = new ServerThread(listen_port);
+            thread.start();
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -80,7 +82,7 @@ public class ProxyService extends Service {
             try {
                 MITMProxyServer server = new MITMProxyServer.Builder()
                         .setPort(mListenPort)
-                        .setTimeOut(10,TimeUnit.SECONDS)
+                        .setTimeOut(30, TimeUnit.SECONDS)
                         .setSslFactoryCache(new LruCache<String, MITMSSLSocketFactory>(100))
                         .setExceptionLogger(ExceptionLogger.STD_ERR)
                         .build();

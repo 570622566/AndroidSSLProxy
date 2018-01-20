@@ -7,6 +7,7 @@ import org.apache.httpcore.HttpServerConnection;
 import org.apache.httpcore.config.SocketConfig;
 
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,23 +29,24 @@ import me.lty.ssltest.mitm.httpcore.Worker;
  * @author lty
  * @version v1.0
  */
-public class HttpsRequestListener implements Runnable {
+public class PlainRequestListener implements Runnable {
 
-    private static final String TAG = HttpsRequestListener.class.getSimpleName();
+    private static final String TAG = PlainRequestListener.class.getSimpleName();
+    private static final boolean SECURITY = false;
 
     private final SocketConfig socketConfig;
     private final HttpHost targetHost;
-    private final SSLServerSocket serversocket;
+    private final ServerSocket serversocket;
     private final HttpService httpService;
     private final HttpConnectionFactory<? extends HttpServerConnection> connectionFactory;
     private final ExceptionLogger exceptionLogger;
     private final ExecutorService executorService;
     private final AtomicBoolean terminated;
 
-    public HttpsRequestListener(
+    public PlainRequestListener(
             final SocketConfig socketConfig,
             final HttpHost targetHost,
-            final SSLServerSocket serverSocket,
+            final ServerSocket serverSocket,
             final HttpService httpService,
             final HttpConnectionFactory<? extends HttpServerConnection>
                     connectionFactory,
@@ -84,7 +86,7 @@ public class HttpsRequestListener implements Runnable {
                     this.targetHost,
                     this.exceptionLogger
             );
-            worker.setUseSSL(true);
+            worker.isSecurity(SECURITY);
             this.executorService.execute(worker);
         } catch (IOException e) {
             e.printStackTrace(System.err);

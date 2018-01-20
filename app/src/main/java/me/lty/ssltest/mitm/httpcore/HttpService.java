@@ -27,6 +27,8 @@
 
 package me.lty.ssltest.mitm.httpcore;
 
+import android.util.Log;
+
 import org.apache.httpcore.ConnectionReuseStrategy;
 import org.apache.httpcore.HttpEntity;
 import org.apache.httpcore.HttpEntityEnclosingRequest;
@@ -198,6 +200,10 @@ public class HttpService {
         this(processor, null, null, handler, null);
     }
 
+    public HttpRequestHandler getHandler() {
+        return handler;
+    }
+
     /**
      * @deprecated (4.1) set {@link HttpProcessor} using constructor
      */
@@ -333,9 +339,11 @@ public class HttpService {
         }
         conn.flush();
 
-        if (!this.connStrategy.keepAlive(response, context)) {
-            conn.close();
-        }
+        //TODO 或许不应该主动关闭连接，因为有些响应没有响应体也会判定
+        //if (!this.connStrategy.keepAlive(response, context)) {
+        //    Log.e("LLYH","connection is not keep alive");
+        //    conn.close();
+        //}
     }
 
     private boolean canResponseHaveBody(final HttpRequest request, final HttpResponse response) {

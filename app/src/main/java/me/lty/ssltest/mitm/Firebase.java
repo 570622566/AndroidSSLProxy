@@ -1,22 +1,15 @@
 package me.lty.ssltest.mitm;
 
-import android.support.v4.util.ArrayMap;
 import android.util.LruCache;
 
 import org.apache.httpcore.ConnectionReuseStrategy;
-import org.apache.httpcore.Header;
-import org.apache.httpcore.HttpEntityEnclosingRequest;
 import org.apache.httpcore.HttpException;
 import org.apache.httpcore.HttpHost;
 import org.apache.httpcore.HttpRequest;
 import org.apache.httpcore.HttpResponse;
-import org.apache.httpcore.entity.ByteArrayEntity;
 import org.apache.httpcore.impl.DefaultBHttpClientConnection;
 import org.apache.httpcore.impl.DefaultConnectionReuseStrategy;
-import org.apache.httpcore.message.BasicHttpEntityEnclosingRequest;
-import org.apache.httpcore.message.BasicHttpRequest;
 import org.apache.httpcore.protocol.HttpContext;
-import org.apache.httpcore.protocol.HttpCoreContext;
 import org.apache.httpcore.protocol.HttpProcessor;
 import org.apache.httpcore.protocol.HttpProcessorBuilder;
 import org.apache.httpcore.protocol.HttpRequestExecutor;
@@ -26,6 +19,7 @@ import org.apache.httpcore.protocol.RequestExpectContinue;
 import org.apache.httpcore.protocol.RequestTargetHost;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -88,19 +82,21 @@ public class Firebase {
 
     public HttpResponse openFire(HttpRequest request, HttpContext context) {
         HttpHost targetHost = (HttpHost) context.getAttribute("targetHost");
-        boolean isTLS = (boolean) context.getAttribute("isTLS");
+
+        final String schemeName = targetHost.getSchemeName();
         String host = targetHost.toHostString();
         String hostName = targetHost.getHostName();
         int hostPort = targetHost.getPort();
+
         DefaultBHttpClientConnection conn = connectionLruCache.get(host);
         if (conn == null || !conn.isOpen()) {
             try {
                 conn = new DefaultBHttpClientConnection(8 * 1024);
                 Socket socket;
-                if (isTLS) {
+                if ("https".equals(schemeName)) {
                     socket = socketFactory.createSocket(hostName, hostPort);
                 } else {
-                    socket = new Socket(host, hostPort);
+                    socket = new Socket(InetAddress.getByName(host), hostPort);
                 }
                 conn.bind(socket);
             } catch (IOException e) {
@@ -136,4 +132,5 @@ public class Firebase {
         connectionLruCache.remove(host);
         return null;
     }
+
 }

@@ -74,7 +74,8 @@ public class MITMProxyServer {
     private final int port;
     private final LruCache<String, MITMSSLSocketFactory> sslSocketFactoryCache;
 
-    private ServerSocket serverSocket;
+    private ServerSocket proxyServerSocket;
+    private ServerSocket httpPlainServerSocket;
     private final HttpService httpService;
     private final SocketConfig socketConfig;
     private final ExceptionLogger exceptionLogger;
@@ -92,15 +93,11 @@ public class MITMProxyServer {
                 "\n   (SSL setup could take a few seconds)");
 
         Log.i(TAG, "Proxy initialized, listening on port " + port);
-        Log.e(TAG, "Could not initialize proxy:");
 
         final HttpProcessorBuilder b = HttpProcessorBuilder.create();
-        String serverInfoCopy = "Apache-HttpCore/1.1";
         b.addAll(
                 new ResponseDate(),
-                new ResponseServer(serverInfoCopy),
-                new ResponseContent(true),
-                new ResponseConnControl()
+                new ResponseContent(true)
         );
         HttpProcessor httpProcessorCopy = b.build();
         ConnectionReuseStrategy connStrategyCopy = DefaultConnectionReuseStrategy.INSTANCE;
@@ -133,7 +130,8 @@ public class MITMProxyServer {
     }
 
     public void start() throws IOException {
-        this.serverSocket = new ServerSocket(this.port, 50);
+        this.proxyServerSocket = new ServerSocket(this.port, 50);
+        this.httpPlainServerSocket = new ServerSocket(this.port + 1, 50);
 
         ThreadGroup threadGroup = new ThreadGroup("Proxy-workers");
         ProxyWorkerPoolExecutor proxyWorkerPoolExecutor = new ProxyWorkerPoolExecutor(
@@ -150,14 +148,14 @@ public class MITMProxyServer {
 
         do {
             try {
-                Socket finalAccept = this.serverSocket.accept();
+                Socket finalAccept = this.proxyServerSocket.accept();
                 ProxyWorker proxyWorker = createWorker(finalAccept);
                 proxyWorkerPoolExecutor.execute(proxyWorker);
             } catch (Exception e) {
                 Log.e(TAG, "Could not initialize proxy:");
                 e.printStackTrace();
             }
-        } while (!this.serverSocket.isClosed());
+        } while (!this.proxyServerSocket.isClosed());
 
         Log.i(TAG, "Engine exited");
     }
@@ -166,6 +164,7 @@ public class MITMProxyServer {
     private ProxyWorker createWorker(Socket finalAccept) throws Exception {
         return new ProxyWorker(
                 finalAccept,
+                this.httpPlainServerSocket,
                 this.socketConfig,
                 this.httpService,
                 this.connectionFactory,
